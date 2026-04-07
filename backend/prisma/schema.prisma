@@ -1,0 +1,618 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── LOOKUP / CONFIGURATION TABLES ───────────────────────────────────────────
+
+model LookupCategory {
+  id      Int           @id @default(autoincrement())
+  slug    String        @unique
+  label   String
+  values  LookupValue[]
+}
+
+model LookupValue {
+  id         Int            @id @default(autoincrement())
+  categoryId Int
+  category   LookupCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  value      String
+  label      String
+  color      String?
+  sortOrder  Int            @default(0)
+  isDefault  Boolean        @default(false)
+  isActive   Boolean        @default(true)
+
+  @@unique([categoryId, value])
+}
+
+model SystemConfig {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+  type  String @default("string")
+}
+
+// ─── AUTH & USERS ────────────────────────────────────────────────────────────
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  label       String
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+}
+
+model Permission {
+  id    Int              @id @default(autoincrement())
+  slug  String           @unique
+  label String
+  group String
+  roles RolePermission[]
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model User {
+  id               Int              @id @default(autoincrement())
+  name             String
+  email            String           @unique
+  passwordHash     String
+  roleId           Int
+  role             Role             @relation(fields: [roleId], references: [id])
+  avatarUrl        String?
+  phone            String?
+  isActive         Boolean          @default(true)
+  twoFactorEnabled Boolean          @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  operatedEvents   Event[]          @relation("EventOperator")
+  staffRates       StaffRate[]
+  eventStaff       EventStaff[]
+  activityLogs     ActivityLog[]
+  notifications    Notification[]
+  maintenanceLogs  MaintenanceLog[] @relation("ResolvedBy")
+  availability     StaffAvailability[]
+  damageReports    DamageReport[]   @relation("ReportedBy")
+}
+
+model StaffAvailability {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean @default(true)
+}
+
+// ─── CLIENTS & CRM ──────────────────────────────────────────────────────────
+
+model Client {
+  id              Int               @id @default(autoincrement())
+  companyName     String
+  contactName     String
+  email           String
+  phone           String?
+  industry        String?
+  billingAddress  String?
+  notes           String?
+  tags            String?
+  satisfactionAvg Float?
+  loyaltyTier     String            @default("new") // new, returning, vip
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  events          Event[]
+  deals           Deal[]
+  invoices        Invoice[]
+  customFields    ClientCustomFieldValue[]
+  feedback        EventFeedback[]
+  interactions    ClientInteraction[]
+}
+
+model ClientCustomField {
+  id        Int                      @id @default(autoincrement())
+  name      String                   @unique
+  label     String
+  type      String
+  options   String?
+  required  Boolean                  @default(false)
+  sortOrder Int                      @default(0)
+  values    ClientCustomFieldValue[]
+}
+
+model ClientCustomFieldValue {
+  id       Int               @id @default(autoincrement())
+  clientId Int
+  fieldId  Int
+  value    String
+  client   Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  field    ClientCustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, fieldId])
+}
+
+// Client interaction log (calls, emails, notes)
+model ClientInteraction {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      String   // call, email, meeting, note
+  subject   String
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+// ─── EXPERIENCES ─────────────────────────────────────────────────────────────
+
+model ExperienceTag {
+  id          Int                    @id @default(autoincrement())
+  name        String                 @unique
+  color       String?
+  experiences ExperienceTagMapping[]
+}
+
+model Experience {
+  id              Int                    @id @default(autoincrement())
+  name            String
+  description     String?
+  minPlayers      Int                    @default(1)
+  maxPlayers      Int                    @default(10)
+  durationMin     Int                    @default(30)
+  difficulty      Int                    @default(1)
+  thumbnailUrl    String?
+  status          String                 @default("active")
+  bufferTimeMin   Int                    @default(15)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  tags            ExperienceTagMapping[]
+  variants        ExperienceVariant[]
+  requiredHardware ExperienceHardwareReq[]
+  hardwareBundles HardwareBundle[]
+  events          Event[]
+}
+
+model ExperienceTagMapping {
+  id           Int           @id @default(autoincrement())
+  experienceId Int
+  tagId        Int
+  experience   Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  tag          ExperienceTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([experienceId, tagId])
+}
+
+model ExperienceVariant {
+  id           Int        @id @default(autoincrement())
+  experienceId Int
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  durationMin  Int?
+  maxPlayers   Int?
+}
+
+model ExperienceHardwareReq {
+  id             Int          @id @default(autoincrement())
+  experienceId   Int
+  hardwareTypeId Int
+  quantity       Int          @default(1)
+  experience     Experience   @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  hardwareType   HardwareType @relation(fields: [hardwareTypeId], references: [id], onDelete: Cascade)
+}
+
+// ─── HARDWARE & ASSET LIFECYCLE ──────────────────────────────────────────────
+
+model HardwareType {
+  id                Int                     @id @default(autoincrement())
+  name              String                  @unique
+  icon              String?
+  isSerialized      Boolean                 @default(true)
+  dailyCost         Float                   @default(0)
+  depreciationYears Float?
+  expectedUses      Int?                    // lifespan by usage count
+  depreciationMethod String                 @default("uses") // "years" | "uses"
+  eolAlertThreshold Float                   @default(0.8) // alert at 80% of lifespan
+  customFields      String?
+  createdAt         DateTime                @default(now())
+
+  items             HardwareItem[]
+  requirements      ExperienceHardwareReq[]
+}
+
+model HardwareItem {
+  id                   Int              @id @default(autoincrement())
+  typeId               Int
+  type                 HardwareType     @relation(fields: [typeId], references: [id])
+  name                 String
+  model                String?
+  serialNumber         String?          @unique
+  status               String           @default("available")
+  location             String?
+  purchasePrice        Float?
+  dailyRate            Float?
+  quantity             Int              @default(1)
+  lastMaintenanceAt    DateTime?
+  notes                String?
+  customFieldValues    String?
+  // Lifecycle tracking
+  purchaseDate         DateTime?
+  expectedLifespanUses Int?             // override type-level
+  currentUseCount      Int              @default(0)
+  depreciationPerUse   Float?           // purchasePrice / expectedLifespanUses
+  bookValue            Float?           // purchasePrice - (depreciationPerUse * currentUseCount)
+  eolReached           Boolean          @default(false)
+  retiredAt            DateTime?
+  // Insurance
+  insuranceExpiry      DateTime?
+  insuranceDetails     String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  bundleItems          BundleItem[]
+  eventHardware        EventHardware[]
+  maintenanceLogs      MaintenanceLog[]
+  depreciationLogs     AssetDepreciationLog[]
+  damageReports        DamageReport[]
+}
+
+// Tracks each depreciation event when hardware is used
+model AssetDepreciationLog {
+  id              Int          @id @default(autoincrement())
+  itemId          Int
+  item            HardwareItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  eventId         Int?
+  event           Event?       @relation(fields: [eventId], references: [id])
+  depreciationAmt Float
+  useCountAfter   Int
+  bookValueAfter  Float
+  createdAt       DateTime     @default(now())
+}
+
+model HardwareBundle {
+  id           Int          @id @default(autoincrement())
+  name         String
+  experienceId Int?
+  experience   Experience?  @relation(fields: [experienceId], references: [id])
+  description  String?
+  createdAt    DateTime     @default(now())
+
+  items        BundleItem[]
+}
+
+model BundleItem {
+  id         Int            @id @default(autoincrement())
+  bundleId   Int
+  itemId     Int
+  quantity   Int            @default(1)
+  bundle     HardwareBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  item       HardwareItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+// ─── EVENTS & BOOKING ────────────────────────────────────────────────────────
+
+model Event {
+  id            Int               @id @default(autoincrement())
+  clientId      Int
+  dealId        Int?
+  experienceId  Int
+  operatorId    Int?
+  startTime     DateTime
+  endTime       DateTime
+  status        String            @default("draft")
+  participants  Int?
+  notes         String?
+  bufferMinutes Int               @default(15)
+  venueAddress  String?           // where the event takes place (client site)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  client        Client            @relation(fields: [clientId], references: [id])
+  deal          Deal?             @relation(fields: [dealId], references: [id])
+  experience    Experience        @relation(fields: [experienceId], references: [id])
+  operator      User?             @relation("EventOperator", fields: [operatorId], references: [id])
+  hardware      EventHardware[]
+  staff         EventStaff[]
+  costs         EventCost?
+  checklist     EventChecklist[]
+  waitlist      WaitlistEntry[]
+  logisticsCosts EventLogisticsCost[]
+  depreciationLogs AssetDepreciationLog[]
+  photos        EventPhoto[]
+  feedback      EventFeedback[]
+  packingItems  EventPackingItem[]
+  damageReports DamageReport[]
+}
+
+model EventHardware {
+  id         Int          @id @default(autoincrement())
+  eventId    Int
+  itemId     Int
+  quantity   Int          @default(1)
+  event      Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  item       HardwareItem @relation(fields: [itemId], references: [id])
+}
+
+model EventChecklist {
+  id          Int     @id @default(autoincrement())
+  eventId     Int
+  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  task        String
+  isCompleted Boolean @default(false)
+  sortOrder   Int     @default(0)
+}
+
+model WaitlistEntry {
+  id          Int      @id @default(autoincrement())
+  eventId     Int
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  clientName  String
+  email       String
+  phone       String?
+  participants Int?
+  notified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// Packing list — auto-generated from hardware, checked off by operators
+model EventPackingItem {
+  id         Int     @id @default(autoincrement())
+  eventId    Int
+  event      Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  itemName   String
+  itemType   String? // hardware type name
+  quantity   Int     @default(1)
+  packed     Boolean @default(false)
+  unpacked   Boolean @default(false) // checked after event return
+  sortOrder  Int     @default(0)
+}
+
+// Event photos (pre/post/damage)
+model EventPhoto {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  url       String
+  type      String   // pre, post, damage, setup
+  caption   String?
+  createdAt DateTime @default(now())
+}
+
+// Client satisfaction feedback per event
+model EventFeedback {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @unique
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+// ─── DEALS & COMMERCIAL ──────────────────────────────────────────────────────
+
+model Deal {
+  id            Int       @id @default(autoincrement())
+  clientId      Int
+  client        Client    @relation(fields: [clientId], references: [id])
+  title         String
+  stage         String    @default("prospect")
+  packageName   String?
+  price         Float?
+  discount      Float?    @default(0)
+  notes         String?
+  followUpDate  DateTime?
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  events        Event[]
+  lineItems     DealLineItem[]
+  documents     DealDocument[]
+  invoices      Invoice[]
+}
+
+model DealLineItem {
+  id          Int    @id @default(autoincrement())
+  dealId      Int
+  deal        Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int    @default(1)
+  unitPrice   Float
+  total       Float
+}
+
+model DealDocument {
+  id        Int      @id @default(autoincrement())
+  dealId    Int
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  type      String?
+  createdAt DateTime @default(now())
+}
+
+// ─── INVOICES & PAYMENTS ─────────────────────────────────────────────────────
+
+model Invoice {
+  id            Int       @id @default(autoincrement())
+  invoiceNumber String    @unique
+  clientId      Int
+  client        Client    @relation(fields: [clientId], references: [id])
+  dealId        Int?
+  deal          Deal?     @relation(fields: [dealId], references: [id])
+  status        String    @default("draft") // draft, sent, paid, partial, overdue, cancelled
+  issueDate     DateTime  @default(now())
+  dueDate       DateTime
+  subtotal      Float
+  taxRate       Float     @default(0)
+  taxAmount     Float     @default(0)
+  totalAmount   Float
+  paidAmount    Float     @default(0)
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lineItems     InvoiceLineItem[]
+  payments      InvoicePayment[]
+}
+
+model InvoiceLineItem {
+  id          Int     @id @default(autoincrement())
+  invoiceId   Int
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Float
+  total       Float
+}
+
+model InvoicePayment {
+  id        Int      @id @default(autoincrement())
+  invoiceId Int
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String?  // bank_transfer, cash, card, check
+  reference String?  // transaction ID or check number
+  paidAt    DateTime @default(now())
+  notes     String?
+}
+
+// ─── COST & PROFITABILITY ────────────────────────────────────────────────────
+
+model StaffRate {
+  id           Int   @id @default(autoincrement())
+  userId       Int
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         String
+  hourlyRate   Float
+  overtimeRate Float?
+
+  @@unique([userId, role])
+}
+
+model EventStaff {
+  id          Int     @id @default(autoincrement())
+  eventId     Int
+  userId      Int
+  hoursWorked Float
+  rateApplied Float
+  isOvertime  Boolean @default(false)
+  totalCost   Float
+  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id])
+}
+
+// Per-event logistics costs (non-recoverable expenses)
+model EventLogisticsCost {
+  id          Int      @id @default(autoincrement())
+  eventId     Int
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    String   // transport, food, hotel, other
+  description String
+  amount      Float
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+}
+
+// Restructured event cost summary
+model EventCost {
+  id                Int      @id @default(autoincrement())
+  eventId           Int      @unique
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Depreciating asset cost (mise en place)
+  experienceCost    Float    @default(0)
+  // Personnel
+  personnelCost     Float    @default(0)
+  // Logistics (non-recoverable)
+  transportCost     Float    @default(0)
+  foodCost          Float    @default(0)
+  hotelCost         Float    @default(0)
+  otherLogistics    Float    @default(0)
+  logisticsTotal    Float    @default(0)
+  // Totals
+  totalCost         Float    @default(0)
+  revenue           Float    @default(0)
+  marginAmount      Float    @default(0)
+  marginPct         Float    @default(0)
+  calculatedAt      DateTime @default(now())
+}
+
+// ─── DAMAGE REPORTS ──────────────────────────────────────────────────────────
+
+model DamageReport {
+  id           Int          @id @default(autoincrement())
+  itemId       Int
+  item         HardwareItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  eventId      Int?
+  event        Event?       @relation(fields: [eventId], references: [id])
+  reportedById Int
+  reportedBy   User         @relation("ReportedBy", fields: [reportedById], references: [id])
+  description  String
+  photoUrl     String?
+  severity     String       @default("minor") // minor, major, critical
+  status       String       @default("open") // open, reviewing, resolved
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+}
+
+// ─── MAINTENANCE ─────────────────────────────────────────────────────────────
+
+model MaintenanceLog {
+  id         Int          @id @default(autoincrement())
+  itemId     Int
+  item       HardwareItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  issue      String
+  resolution String?
+  resolvedById Int?
+  resolvedBy User?        @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  status     String       @default("open")
+  damageReportId Int?     // linked from damage report if applicable
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+}
+
+// ─── ACTIVITY & NOTIFICATIONS ────────────────────────────────────────────────
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   Int?
+  details    String?
+  ipAddress  String?
+  timestamp  DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+}

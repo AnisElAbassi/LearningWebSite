@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: pixelgate-ops-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: node src/index.js
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        sync: false
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: pixelgate-ops-db
+    plan: free
+    databaseName: pixelgate_ops
