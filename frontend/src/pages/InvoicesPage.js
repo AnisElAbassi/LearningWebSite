@@ -207,6 +207,7 @@ function InvoiceCreateModal({ show, onClose, clients, onSaved }) {
           description: l.description,
           quantity: parseInt(l.quantity) || 1,
           unitPrice: parseFloat(l.unitPrice) || 0,
+          total: (parseInt(l.quantity) || 1) * (parseFloat(l.unitPrice) || 0),
         })),
       });
       toast.success(t('invoice_created'));
@@ -321,7 +322,7 @@ function DealInvoiceModal({ show, onClose, deals, onSaved }) {
     if (!selectedDealId) return;
     setSubmitting(true);
     try {
-      await api.post('/invoices/from-deal', { dealId: parseInt(selectedDealId) });
+      await api.post(`/invoices/from-deal/${selectedDealId}`);
       toast.success(t('invoice_generated_from_deal'));
       onSaved();
       onClose();
