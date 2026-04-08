@@ -75,8 +75,8 @@ export default function DealsPage() {
       )}
 
       {view === 'pipeline' ? (
-        <div className="w-full overflow-x-scroll pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="inline-flex gap-4 min-w-full">
+        <div className="w-full overflow-x-auto pb-4 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="inline-flex gap-4 min-w-max">
           {pipeline.map(stage => (
             <div key={stage.stage} className="w-60 md:w-72 flex-none">
               <div className="flex items-center justify-between mb-3 px-1">
