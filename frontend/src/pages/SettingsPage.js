@@ -4,6 +4,7 @@ import { HiOutlineCog, HiOutlineTag, HiOutlineCube, HiOutlineCalendar, HiOutline
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import Modal from '../components/layout/Modal';
 import { useI18n } from '../hooks/useI18n';
 
 export default function SettingsPage() {
@@ -431,8 +432,12 @@ function TeamTab() {
   const [subTab, setSubTab] = useState('users');
 
   const fetchAll = async () => {
-    const [uRes, rRes, pRes] = await Promise.all([api.get('/users'), api.get('/roles'), api.get('/roles/permissions')]);
-    setUsers(uRes.data); setRoles(rRes.data); setPermissions(pRes.data);
+    try {
+      const [uRes, rRes, pRes] = await Promise.allSettled([api.get('/users'), api.get('/roles'), api.get('/roles/permissions')]);
+      if (uRes.status === 'fulfilled') setUsers(uRes.value.data);
+      if (rRes.status === 'fulfilled') setRoles(rRes.value.data);
+      if (pRes.status === 'fulfilled') setPermissions(pRes.value.data);
+    } catch { toast.error('Failed to load team data'); }
   };
 
   useEffect(() => { fetchAll(); }, []);
