@@ -16,6 +16,7 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editPayment, setEditPayment] = useState(null);
 
   const fetchInvoice = () => {
     api.get(`/invoices/${id}`).then(r => setInvoice(r.data)).catch(() => toast.error(t('failed_to_load_invoice')));
@@ -174,6 +175,7 @@ export default function InvoiceDetailPage() {
                 <th>{t('amount')}</th>
                 <th>{t('method')}</th>
                 <th>{t('reference')}</th>
+                <th>{t('actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,6 +185,14 @@ export default function InvoiceDetailPage() {
                   <td className="text-neon-green font-mono text-sm">{formatMoney(payment.amount)}</td>
                   <td className="text-gray-400 text-sm">{payment.method || '-'}</td>
                   <td className="text-gray-500 text-sm font-mono">{payment.reference || '-'}</td>
+                  <td className="flex gap-2">
+                    <button onClick={() => { setEditPayment(payment); setShowPaymentModal(true); }} className="text-gray-400 hover:text-pg-purple"><HiOutlinePencil className="w-4 h-4" /></button>
+                    <button onClick={async () => {
+                      if (!window.confirm('Delete this payment?')) return;
+                      try { await api.delete(`/invoices/payments/${payment.id}`); toast.success('Payment deleted'); fetchInvoice(); }
+                      catch (err) { toast.error('Failed to delete payment'); }
+                    }} className="text-gray-400 hover:text-neon-red"><HiOutlineTrash className="w-4 h-4" /></button>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
@@ -194,10 +204,11 @@ export default function InvoiceDetailPage() {
 
       <RecordPaymentModal
         show={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+        onClose={() => { setShowPaymentModal(false); setEditPayment(null); }}
         invoiceId={invoice.id}
         outstanding={outstanding}
         onSaved={fetchInvoice}
+        editPayment={editPayment}
       />
 
       <EditInvoiceModal
@@ -210,8 +221,9 @@ export default function InvoiceDetailPage() {
   );
 }
 
-function RecordPaymentModal({ show, onClose, invoiceId, outstanding, onSaved }) {
+function RecordPaymentModal({ show, onClose, invoiceId, outstanding, onSaved, editPayment }) {
   const { t, formatMoney } = useI18n();
+  const isEdit = !!editPayment;
   const [form, setForm] = useState({
     amount: '',
     method: 'bank_transfer',
@@ -220,18 +232,40 @@ function RecordPaymentModal({ show, onClose, invoiceId, outstanding, onSaved }) 
   });
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (editPayment) {
+      setForm({
+        amount: editPayment.amount || '',
+        method: editPayment.method || 'bank_transfer',
+        reference: editPayment.reference || '',
+        date: editPayment.date ? new Date(editPayment.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      });
+    } else {
+      setForm({ amount: '', method: 'bank_transfer', reference: '', date: new Date().toISOString().split('T')[0] });
+    }
+  }, [editPayment, show]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post(`/invoices/${invoiceId}/payments`, {
-        amount: parseFloat(form.amount),
-        method: form.method,
-        reference: form.reference,
-        date: form.date,
-      });
-      toast.success(t('payment_recorded'));
-      setForm({ amount: '', method: 'bank_transfer', reference: '', date: new Date().toISOString().split('T')[0] });
+      if (isEdit) {
+        await api.put(`/invoices/payments/${editPayment.id}`, {
+          amount: parseFloat(form.amount),
+          method: form.method,
+          reference: form.reference,
+          paidAt: form.date,
+        });
+        toast.success('Payment updated');
+      } else {
+        await api.post(`/invoices/${invoiceId}/payments`, {
+          amount: parseFloat(form.amount),
+          method: form.method,
+          reference: form.reference,
+          date: form.date,
+        });
+        toast.success(t('payment_recorded'));
+      }
       onSaved();
       onClose();
     } catch (err) {
@@ -242,7 +276,7 @@ function RecordPaymentModal({ show, onClose, invoiceId, outstanding, onSaved }) 
   };
 
   return (
-    <Modal isOpen={show} onClose={onClose} title={t('record_payment')} size="md">
+    <Modal isOpen={show} onClose={onClose} title={isEdit ? 'Edit Payment' : t('record_payment')} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="p-3 rounded-lg bg-pg-dark2/50 border border-pg-border text-sm">
           <span className="text-gray-400">{t('outstanding')}: </span>

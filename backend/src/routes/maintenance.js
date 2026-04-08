@@ -72,6 +72,46 @@ router.put('/:id/resolve', authenticate, authorize('hardware.update'), async (re
   }
 });
 
+// PUT /api/maintenance/:id — edit a maintenance log
+router.put('/:id', authenticate, authorize('hardware.update'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { issue, status } = req.body;
+    const data = {};
+    if (issue !== undefined) data.issue = issue;
+    if (status !== undefined) data.status = status;
+    const log = await prisma.maintenanceLog.update({
+      where: { id },
+      data,
+      include: { item: { include: { type: true } } }
+    });
+    res.json(log);
+  } catch (err) {
+    handleError(res, err, 'maintenance.update');
+  }
+});
+
+// DELETE /api/maintenance/:id — delete a maintenance log
+router.delete('/:id', authenticate, authorize('hardware.update'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const log = await prisma.maintenanceLog.findUnique({ where: { id } });
+    if (!log) return res.status(404).json({ error: 'Not found' });
+
+    await prisma.maintenanceLog.delete({ where: { id } });
+
+    // If item was in maintenance and no other open logs, set back to available
+    const otherOpenLogs = await prisma.maintenanceLog.count({ where: { itemId: log.itemId, status: { not: 'resolved' } } });
+    if (otherOpenLogs === 0) {
+      await prisma.hardwareItem.update({ where: { id: log.itemId }, data: { status: 'available' } });
+    }
+
+    res.json({ message: 'Maintenance log deleted' });
+  } catch (err) {
+    handleError(res, err, 'maintenance.delete');
+  }
+});
+
 // GET /api/maintenance/due - Items due for maintenance
 router.get('/due', authenticate, async (req, res) => {
   try {

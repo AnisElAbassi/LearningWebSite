@@ -220,4 +220,49 @@ router.post('/:id/payments', authenticate, authorize('invoices.update'), async (
   }
 });
 
+// PUT /api/invoices/payments/:paymentId — edit a payment
+router.put('/payments/:paymentId', authenticate, authorize('invoices.update'), async (req, res) => {
+  try {
+    const paymentId = parseInt(req.params.paymentId);
+    const { amount, paidAt, method, reference } = req.body;
+    const payment = await prisma.invoicePayment.update({
+      where: { id: paymentId },
+      data: { amount: parseFloat(amount), paidAt: paidAt ? new Date(paidAt) : undefined, method, reference }
+    });
+
+    // Recalculate invoice paidAmount
+    const allPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: payment.invoiceId } });
+    const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+    const invoice = await prisma.invoice.update({
+      where: { id: payment.invoiceId },
+      data: { paidAmount: totalPaid, status: totalPaid >= (await prisma.invoice.findUnique({ where: { id: payment.invoiceId } })).totalAmount ? 'paid' : totalPaid > 0 ? 'partial' : 'sent' }
+    });
+
+    res.json(payment);
+  } catch (err) {
+    handleError(res, err, 'invoices.payments.update');
+  }
+});
+
+// DELETE /api/invoices/payments/:paymentId — delete a payment
+router.delete('/payments/:paymentId', authenticate, authorize('invoices.update'), async (req, res) => {
+  try {
+    const paymentId = parseInt(req.params.paymentId);
+    const payment = await prisma.invoicePayment.delete({ where: { id: paymentId } });
+
+    // Recalculate invoice paidAmount
+    const allPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: payment.invoiceId } });
+    const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+    const inv = await prisma.invoice.findUnique({ where: { id: payment.invoiceId } });
+    await prisma.invoice.update({
+      where: { id: payment.invoiceId },
+      data: { paidAmount: totalPaid, status: totalPaid >= inv.totalAmount ? 'paid' : totalPaid > 0 ? 'partial' : 'sent' }
+    });
+
+    res.json({ message: 'Payment deleted' });
+  } catch (err) {
+    handleError(res, err, 'invoices.payments.delete');
+  }
+});
+
 module.exports = router;

@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { HiOutlineArrowLeft } from 'react-icons/hi';
+import { HiOutlineArrowLeft, HiOutlinePencil } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import Modal from '../components/layout/Modal';
 import StatusBadge from '../components/layout/StatusBadge';
 
 const stageColors = { prospect: '#6b7280', proposal_sent: '#f59e0b', negotiating: '#a855f7', confirmed: '#fbbf24', completed: '#10b981', lost: '#ef4444' };
-const invoiceColors = { draft: '#6b7280', sent: '#f59e0b', paid: '#10b981', overdue: '#ef4444' };
 const stages = ['prospect', 'proposal_sent', 'negotiating', 'confirmed', 'completed', 'lost'];
 
 export default function DealDetailPage() {
   const { id } = useParams();
   const [deal, setDeal] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetch = () => api.get(`/deals/${id}`).then(r => setDeal(r.data));
   useEffect(() => { fetch(); }, [id]);
@@ -33,6 +34,9 @@ export default function DealDetailPage() {
           <h1 className="font-inter font-bold text-xl text-white">{deal.title}</h1>
           <p className="text-sm text-gray-400">{deal.client?.companyName}</p>
         </div>
+        <button onClick={() => setShowEditModal(true)} className="btn-pg-outline flex items-center gap-2 text-sm">
+          <HiOutlinePencil className="w-4 h-4" /> Edit Deal
+        </button>
         <div className="text-right">
           <p className="text-2xl font-inter font-bold text-pg-purple">€{((deal.price || 0) - (deal.discount || 0)).toLocaleString()}</p>
           {deal.discount > 0 && <p className="text-xs text-gray-500">Discount: €{deal.discount}</p>}
@@ -87,6 +91,90 @@ export default function DealDetailPage() {
           {(!deal.events || deal.events.length === 0) && <p className="text-gray-500 text-sm text-center py-4">No linked events</p>}
         </div>
       </div>
+
+      <DealEditModal show={showEditModal} onClose={() => setShowEditModal(false)} deal={deal} onSaved={fetch} />
     </div>
+  );
+}
+
+function DealEditModal({ show, onClose, deal, onSaved }) {
+  const [form, setForm] = useState({ title: '', price: '', discount: '', notes: '', stage: '' });
+  const [lineItems, setLineItems] = useState([]);
+
+  useEffect(() => {
+    if (deal && show) {
+      setForm({ title: deal.title || '', price: deal.price || '', discount: deal.discount || 0, notes: deal.notes || '', stage: deal.stage || '' });
+      setLineItems((deal.lineItems || []).map(l => ({ description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, total: l.total || l.quantity * l.unitPrice })));
+    }
+  }, [deal, show]);
+
+  const addLine = () => setLineItems([...lineItems, { description: '', quantity: 1, unitPrice: 0, total: 0 }]);
+  const updateLine = (i, field, value) => {
+    const items = [...lineItems];
+    items[i][field] = value;
+    if (field === 'quantity' || field === 'unitPrice') items[i].total = items[i].quantity * items[i].unitPrice;
+    setLineItems(items);
+    setForm(f => ({ ...f, price: items.reduce((sum, it) => sum + it.total, 0) }));
+  };
+  const removeLine = (i) => setLineItems(lineItems.filter((_, idx) => idx !== i));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/deals/${deal.id}`, {
+        title: form.title,
+        price: parseFloat(form.price) || 0,
+        discount: parseFloat(form.discount) || 0,
+        notes: form.notes,
+        stage: form.stage,
+        lineItems: lineItems.filter(l => l.description),
+      });
+      toast.success('Deal updated');
+      onSaved(); onClose();
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed'); }
+  };
+
+  return (
+    <Modal isOpen={show} onClose={onClose} title="Edit Deal" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className="label-text">Title *</label><input className="input-dark" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
+          <div><label className="label-text">Stage</label>
+            <select className="input-dark" value={form.stage} onChange={e => setForm({ ...form, stage: e.target.value })}>
+              {stages.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="label-text mb-0">Line Items</label>
+            <button type="button" onClick={addLine} className="btn-pg-outline text-xs">+ Add Item</button>
+          </div>
+          {lineItems.map((item, i) => (
+            <div key={i} className="grid grid-cols-12 gap-2 mb-2">
+              <input className="input-dark col-span-5 text-sm" placeholder="Description" value={item.description} onChange={e => updateLine(i, 'description', e.target.value)} />
+              <input type="number" className="input-dark col-span-2 text-sm" placeholder="Qty" value={item.quantity} onChange={e => updateLine(i, 'quantity', parseInt(e.target.value) || 0)} min={1} />
+              <input type="number" className="input-dark col-span-3 text-sm" placeholder="Unit €" value={item.unitPrice} onChange={e => updateLine(i, 'unitPrice', parseFloat(e.target.value) || 0)} step="0.01" />
+              <div className="col-span-1 flex items-center text-sm text-pg-purple font-mono">€{item.total?.toFixed(0)}</div>
+              <button type="button" onClick={() => removeLine(i)} className="col-span-1 text-gray-500 hover:text-neon-red text-xs">×</button>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div><label className="label-text">Total Price (€)</label><input type="number" className="input-dark" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} step="0.01" /></div>
+          <div><label className="label-text">Discount (€)</label><input type="number" className="input-dark" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} step="0.01" /></div>
+          <div className="flex items-end"><div className="text-lg font-inter text-pg-purple">Net: €{((parseFloat(form.price) || 0) - (parseFloat(form.discount) || 0)).toFixed(0)}</div></div>
+        </div>
+
+        <div><label className="label-text">Notes</label><textarea className="input-dark" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <button type="button" onClick={onClose} className="btn-pg-ghost text-sm">Cancel</button>
+          <button type="submit" className="btn-pg-primary text-sm">Save Changes</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

@@ -133,6 +133,29 @@ router.post('/custom-fields', authenticate, authorize('settings.manage'), async 
   }
 });
 
+// PUT /api/clients/custom-fields/:id
+router.put('/custom-fields/:id', authenticate, authorize('settings.manage'), async (req, res) => {
+  try {
+    const field = await prisma.clientCustomField.update({
+      where: { id: parseInt(req.params.id) },
+      data: req.body
+    });
+    res.json(field);
+  } catch (err) {
+    handleError(res, err, 'clients.customFields.update');
+  }
+});
+
+// DELETE /api/clients/custom-fields/:id
+router.delete('/custom-fields/:id', authenticate, authorize('settings.manage'), async (req, res) => {
+  try {
+    await prisma.clientCustomField.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Custom field deleted' });
+  } catch (err) {
+    handleError(res, err, 'clients.customFields.delete');
+  }
+});
+
 // ─── CLIENT INTERACTIONS (Notes/Calls/Emails Log) ────────────────────────────
 
 router.get('/:id/interactions', authenticate, async (req, res) => {

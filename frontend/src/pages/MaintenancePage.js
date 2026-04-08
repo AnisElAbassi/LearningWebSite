@@ -13,6 +13,7 @@ export default function MaintenancePage() {
   const [dueItems, setDueItems] = useState([]);
   const [filter, setFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editLog, setEditLog] = useState(null);
   const [hardware, setHardware] = useState([]);
   const [tab, setTab] = useState('logs');
 
@@ -77,6 +78,12 @@ export default function MaintenancePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={log.status} color={statusColors[log.status]} />
+                  <button onClick={() => { setEditLog(log); setShowModal(true); }} className="text-gray-400 hover:text-pg-purple text-xs">Edit</button>
+                  <button onClick={async () => {
+                    if (!window.confirm('Delete this maintenance log?')) return;
+                    try { await api.delete(`/maintenance/${log.id}`); toast.success('Log deleted'); fetchAll(); }
+                    catch { toast.error('Failed'); }
+                  }} className="text-gray-400 hover:text-neon-red text-xs">Delete</button>
                   {log.status !== 'resolved' && (
                     <button onClick={() => { const r = prompt('Resolution details:'); if (r) resolve(log.id, r); }} className="btn-pg-outline text-xs flex items-center gap-1">
                       <HiOutlineCheck className="w-3 h-3" /> Resolve
@@ -109,26 +116,36 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      <ReportIssueModal show={showModal} onClose={() => setShowModal(false)} hardware={hardware} onSaved={fetchAll} />
+      <ReportIssueModal show={showModal} onClose={() => { setShowModal(false); setEditLog(null); }} hardware={hardware} onSaved={fetchAll} editLog={editLog} />
     </div>
   );
 }
 
-function ReportIssueModal({ show, onClose, hardware, onSaved }) {
+function ReportIssueModal({ show, onClose, hardware, onSaved, editLog }) {
+  const isEdit = !!editLog;
   const [form, setForm] = useState({ itemId: '', issue: '' });
+
+  useEffect(() => {
+    if (editLog) setForm({ itemId: editLog.itemId || '', issue: editLog.issue || '' });
+    else setForm({ itemId: '', issue: '' });
+  }, [editLog, show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/maintenance', { itemId: parseInt(form.itemId), issue: form.issue });
-      toast.success('Issue reported');
+      if (isEdit) {
+        await api.put(`/maintenance/${editLog.id}`, { issue: form.issue });
+        toast.success('Log updated');
+      } else {
+        await api.post('/maintenance', { itemId: parseInt(form.itemId), issue: form.issue });
+        toast.success('Issue reported');
+      }
       onSaved(); onClose();
-      setForm({ itemId: '', issue: '' });
     } catch (err) { toast.error(err.response?.data?.error || 'Failed'); }
   };
 
   return (
-    <Modal isOpen={show} onClose={onClose} title="Report Maintenance Issue" size="sm">
+    <Modal isOpen={show} onClose={onClose} title={isEdit ? 'Edit Maintenance Log' : 'Report Maintenance Issue'} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div><label className="label-text">Hardware Item *</label>
           <select className="input-dark" value={form.itemId} onChange={e => setForm({ ...form, itemId: e.target.value })} required>

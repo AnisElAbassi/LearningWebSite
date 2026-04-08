@@ -272,6 +272,7 @@ function LogisticsTab({ t, formatMoney }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editCost, setEditCost] = useState(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
@@ -327,7 +328,7 @@ function LogisticsTab({ t, formatMoney }) {
       {/* Line Items Table */}
       <div className="glass-card rounded-xl overflow-hidden">
         <table className="table-dark">
-          <thead><tr><th>{t('event') || 'Event'}</th><th>{t('category') || 'Category'}</th><th>{t('description') || 'Description'}</th><th>{t('amount') || 'Amount'}</th><th>{t('date') || 'Date'}</th></tr></thead>
+          <thead><tr><th>{t('event') || 'Event'}</th><th>{t('category') || 'Category'}</th><th>{t('description') || 'Description'}</th><th>{t('amount') || 'Amount'}</th><th>{t('date') || 'Date'}</th><th>{t('actions') || 'Actions'}</th></tr></thead>
           <tbody>
             {items.map((item, idx) => (
               <tr key={item.id || idx}>
@@ -336,6 +337,14 @@ function LogisticsTab({ t, formatMoney }) {
                 <td className="text-gray-400 text-sm">{item.description || '—'}</td>
                 <td className="text-pg-purple font-mono text-sm font-medium">{formatMoney(item.amount)}</td>
                 <td className="text-gray-500 text-xs">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}</td>
+                <td className="flex gap-2">
+                  <button onClick={() => { setEditCost(item); setShowModal(true); }} className="text-gray-400 hover:text-pg-purple text-xs">Edit</button>
+                  <button onClick={async () => {
+                    if (!window.confirm('Delete this cost?')) return;
+                    try { await api.delete(`/logistics/${item.id}`); toast.success('Cost deleted'); fetchData(); }
+                    catch { toast.error('Failed'); }
+                  }} className="text-gray-400 hover:text-neon-red text-xs">Delete</button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -343,7 +352,7 @@ function LogisticsTab({ t, formatMoney }) {
         {items.length === 0 && !loading && <p className="text-gray-500 text-sm text-center py-8">{t('noLogisticsCosts') || 'No logistics costs for this period'}</p>}
       </div>
 
-      <AddLogisticsCostModal show={showModal} onClose={() => setShowModal(false)} events={events} onSaved={fetchData} />
+      <AddLogisticsCostModal show={showModal} onClose={() => { setShowModal(false); setEditCost(null); }} events={events} onSaved={fetchData} editCost={editCost} />
     </>
   );
 }
@@ -363,31 +372,45 @@ function KPI({ label, value, icon: Icon, color }) {
   );
 }
 
-function AddLogisticsCostModal({ show, onClose, events, onSaved }) {
+function AddLogisticsCostModal({ show, onClose, events, onSaved, editCost }) {
   const { t } = useI18n();
+  const isEdit = !!editCost;
   const [form, setForm] = useState({ eventId: '', category: 'transport', description: '', amount: '' });
 
-  useEffect(() => { if (show) setForm({ eventId: '', category: 'transport', description: '', amount: '' }); }, [show]);
+  useEffect(() => {
+    if (editCost) {
+      setForm({ eventId: editCost.eventId || '', category: editCost.category || 'transport', description: editCost.description || '', amount: editCost.amount || '' });
+    } else if (show) {
+      setForm({ eventId: '', category: 'transport', description: '', amount: '' });
+    }
+  }, [show, editCost]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/logistics/event/${form.eventId}`, { category: form.category, description: form.description, amount: parseFloat(form.amount) });
-      toast.success(t('costAdded') || 'Logistics cost added');
+      if (isEdit) {
+        await api.put(`/logistics/${editCost.id}`, { category: form.category, description: form.description, amount: parseFloat(form.amount) });
+        toast.success('Cost updated');
+      } else {
+        await api.post(`/logistics/event/${form.eventId}`, { category: form.category, description: form.description, amount: parseFloat(form.amount) });
+        toast.success(t('costAdded') || 'Logistics cost added');
+      }
       onSaved(); onClose();
-    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add cost'); }
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed'); }
   };
 
   return (
-    <Modal isOpen={show} onClose={onClose} title={t('addLogisticsCost') || 'Add Logistics Cost'} size="sm">
+    <Modal isOpen={show} onClose={onClose} title={isEdit ? 'Edit Cost' : (t('addLogisticsCost') || 'Add Logistics Cost')} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="label-text">{t('event') || 'Event'} *</label>
-          <select className="input-dark" value={form.eventId} onChange={e => setForm({ ...form, eventId: e.target.value })} required>
-            <option value="">{t('selectEvent') || 'Select event...'}</option>
-            {events.map(ev => <option key={ev.id} value={ev.id}>#{ev.id} — {ev.client?.companyName || 'Event'} ({new Date(ev.startTime).toLocaleDateString()})</option>)}
-          </select>
-        </div>
+        {!isEdit && (
+          <div>
+            <label className="label-text">{t('event') || 'Event'} *</label>
+            <select className="input-dark" value={form.eventId} onChange={e => setForm({ ...form, eventId: e.target.value })} required>
+              <option value="">{t('selectEvent') || 'Select event...'}</option>
+              {events.map(ev => <option key={ev.id} value={ev.id}>#{ev.id} — {ev.client?.companyName || 'Event'} ({new Date(ev.startTime).toLocaleDateString()})</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <label className="label-text">{t('category') || 'Category'} *</label>
           <select className="input-dark" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} required>

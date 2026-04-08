@@ -62,6 +62,7 @@ function InventoryTab() {
   const [showItemModal, setShowItemModal] = useState(false);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [editType, setEditType] = useState(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -98,7 +99,7 @@ function InventoryTab() {
           </select>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowTypeModal(true)} className="btn-pg-outline flex items-center gap-2 text-sm">
+          <button onClick={() => { setEditType(null); setShowTypeModal(true); }} className="btn-pg-outline flex items-center gap-2 text-sm">
             <HiOutlinePlus className="w-4 h-4" /> New Type
           </button>
           <button onClick={() => { setEditItem(null); setShowItemModal(true); }} className="btn-pg-primary flex items-center gap-2 text-sm">
@@ -110,8 +111,12 @@ function InventoryTab() {
       {/* Type Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {types.map(type => (
-          <motion.div key={type.id} whileHover={{ scale: 1.03 }} className="glass-card rounded-lg p-3 text-center cursor-pointer"
+          <motion.div key={type.id} whileHover={{ scale: 1.03 }} className="glass-card rounded-lg p-3 text-center cursor-pointer relative group"
             onClick={() => setFilterType(filterType === String(type.id) ? '' : String(type.id))}>
+            <button onClick={(e) => { e.stopPropagation(); setEditType(type); setShowTypeModal(true); }}
+              className="absolute top-1 right-1 text-gray-600 hover:text-pg-purple opacity-0 group-hover:opacity-100 transition-opacity p-1">
+              <HiOutlinePlus className="w-3 h-3 rotate-45" />
+            </button>
             <HiOutlineCube className={`w-6 h-6 mx-auto ${filterType === String(type.id) ? 'text-pg-purple' : 'text-gray-500'}`} />
             <p className="text-xs font-medium mt-1">{type.name}</p>
             <p className="text-lg font-inter font-bold text-pg-purple">{type._count?.items || 0}</p>
@@ -144,7 +149,7 @@ function InventoryTab() {
       </div>
 
       <HardwareItemModal show={showItemModal} onClose={() => setShowItemModal(false)} item={editItem} types={types} onSaved={fetchAll} />
-      <HardwareTypeModal show={showTypeModal} onClose={() => setShowTypeModal(false)} onSaved={fetchAll} />
+      <HardwareTypeModal show={showTypeModal} onClose={() => { setShowTypeModal(false); setEditType(null); }} onSaved={fetchAll} editType={editType} />
     </>
   );
 }
@@ -348,20 +353,32 @@ function HardwareItemModal({ show, onClose, item, types, onSaved }) {
   );
 }
 
-function HardwareTypeModal({ show, onClose, onSaved }) {
+function HardwareTypeModal({ show, onClose, onSaved, editType }) {
+  const isEdit = !!editType;
   const [form, setForm] = useState({ name: '', isSerialized: true, dailyCost: 0, icon: '', depreciationYears: '' });
+
+  useEffect(() => {
+    if (editType) setForm({ name: editType.name || '', isSerialized: editType.isSerialized ?? true, dailyCost: editType.dailyCost || 0, icon: editType.icon || '', depreciationYears: editType.depreciationYears || '' });
+    else setForm({ name: '', isSerialized: true, dailyCost: 0, icon: '', depreciationYears: '' });
+  }, [editType, show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/hardware-types', { ...form, dailyCost: parseFloat(form.dailyCost), depreciationYears: form.depreciationYears ? parseFloat(form.depreciationYears) : null });
-      toast.success('Hardware type created');
+      const payload = { ...form, dailyCost: parseFloat(form.dailyCost), depreciationYears: form.depreciationYears ? parseFloat(form.depreciationYears) : null };
+      if (isEdit) {
+        await api.put(`/hardware-types/${editType.id}`, payload);
+        toast.success('Hardware type updated');
+      } else {
+        await api.post('/hardware-types', payload);
+        toast.success('Hardware type created');
+      }
       onSaved(); onClose();
     } catch (err) { toast.error(err.response?.data?.error || 'Failed'); }
   };
 
   return (
-    <Modal isOpen={show} onClose={onClose} title="New Hardware Type" size="sm">
+    <Modal isOpen={show} onClose={onClose} title={isEdit ? 'Edit Hardware Type' : 'New Hardware Type'} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div><label className="label-text">Type Name *</label><input className="input-dark" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="e.g. Haptic Vest" /></div>
         <div className="flex items-center gap-3">

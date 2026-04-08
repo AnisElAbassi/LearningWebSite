@@ -154,6 +154,18 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   {f.required && <span className="text-[10px] text-neon-orange">Required</span>}
                   {f.options && <span className="text-[10px] text-gray-500">Options: {f.options}</span>}
+                  <button onClick={async () => {
+                    const newLabel = prompt('New label:', f.label);
+                    if (newLabel && newLabel !== f.label) {
+                      await api.put(`/clients/custom-fields/${f.id}`, { label: newLabel });
+                      toast.success('Field updated'); fetchAll();
+                    }
+                  }} className="text-gray-500 hover:text-pg-purple text-xs">Edit</button>
+                  <button onClick={async () => {
+                    if (!window.confirm(`Delete field "${f.label}"?`)) return;
+                    try { await api.delete(`/clients/custom-fields/${f.id}`); toast.success('Field deleted'); fetchAll(); }
+                    catch { toast.error('Failed'); }
+                  }} className="text-gray-500 hover:text-neon-red text-xs">Delete</button>
                 </div>
               </div>
             ))}
