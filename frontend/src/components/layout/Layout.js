@@ -32,7 +32,7 @@ export default function Layout() {
         <div className="no-print">
           <TopBar />
         </div>
-        <main className="flex-1 overflow-y-auto p-3 md:p-6" id="print-area">
+        <main className="flex-1 overflow-auto p-3 md:p-6" id="print-area">
           <Outlet />
         </main>
       </div>
