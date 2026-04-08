@@ -15,35 +15,35 @@ import { useI18n } from '../../hooks/useI18n';
 const navSections = [
   {
     id: 'operations', items: [
-      { path: '/', icon: HiOutlineHome, label: 'dashboard', exact: true },
-      { path: '/calendar', icon: HiOutlineCalendar, label: 'calendar' },
-      { path: '/events', icon: HiOutlineClipboardList, label: 'events' },
-      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences' },
+      { path: '/', icon: HiOutlineHome, label: 'dashboard', exact: true, perm: null },
+      { path: '/calendar', icon: HiOutlineCalendar, label: 'calendar', perm: 'events.view' },
+      { path: '/events', icon: HiOutlineClipboardList, label: 'events', perm: 'events.view' },
+      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences', perm: 'experiences.view' },
     ]
   },
   {
     id: 'business', items: [
-      { path: '/clients', icon: HiOutlineUserGroup, label: 'clients' },
-      { path: '/deals', icon: HiOutlineCurrencyDollar, label: 'deals' },
-      { path: '/invoices', icon: HiOutlineDocumentDuplicate, label: 'invoices' },
+      { path: '/clients', icon: HiOutlineUserGroup, label: 'clients', perm: 'clients.view' },
+      { path: '/deals', icon: HiOutlineCurrencyDollar, label: 'deals', perm: 'deals.view' },
+      { path: '/invoices', icon: HiOutlineDocumentDuplicate, label: 'invoices', perm: 'invoices.view' },
     ]
   },
   {
     id: 'assets', items: [
-      { path: '/hardware', icon: HiOutlineCube, label: 'hardware' },
-      { path: '/maintenance', icon: HiOutlineAdjustments, label: 'maintenance' },
+      { path: '/hardware', icon: HiOutlineCube, label: 'hardware', perm: 'hardware.view' },
+      { path: '/maintenance', icon: HiOutlineAdjustments, label: 'maintenance', perm: 'hardware.view' },
     ]
   },
   {
     id: 'insights', items: [
-      { path: '/finance', icon: HiOutlineCurrencyDollar, label: 'finance' },
-      { path: '/reports', icon: HiOutlineChartBar, label: 'reports' },
+      { path: '/finance', icon: HiOutlineCurrencyDollar, label: 'finance', perm: 'costs.view' },
+      { path: '/reports', icon: HiOutlineChartBar, label: 'reports', perm: 'reports.view' },
     ]
   },
   {
     id: 'system', items: [
-      { path: '/settings', icon: HiOutlineCog, label: 'settings' },
-      { path: '/activity', icon: HiOutlineDocumentText, label: 'activity_log' },
+      { path: '/settings', icon: HiOutlineCog, label: 'settings', perm: 'settings.view' },
+      { path: '/activity', icon: HiOutlineDocumentText, label: 'activity_log', perm: 'activity.view' },
     ]
   },
 ];
@@ -52,8 +52,14 @@ export default function Sidebar({ mobile, onNavigate }) {
   const dispatch = useDispatch();
   const location = useLocation();
   const { sidebarCollapsed } = useSelector(state => state.ui);
-  const { t } = useI18n();
+  const user = useSelector(state => state.auth.user);
+  const { t, isRTL } = useI18n();
   const collapsed = mobile ? false : sidebarCollapsed;
+
+  // Get user permissions — admin sees everything
+  const isAdmin = user?.role?.name === 'admin';
+  const userPerms = user?.role?.permissions?.map(rp => rp.permission?.slug || rp.slug) || [];
+  const hasPerm = (perm) => !perm || isAdmin || userPerms.includes(perm);
 
   const handleNavClick = () => {
     if (onNavigate) onNavigate();
@@ -63,8 +69,8 @@ export default function Sidebar({ mobile, onNavigate }) {
     <motion.aside
       animate={{ width: mobile ? 280 : collapsed ? 80 : 256 }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="h-full bg-pg-dark border-r border-pg-border flex flex-col"
-      style={mobile ? {} : { position: 'fixed', left: 0, top: 0, zIndex: 40 }}
+      className={`h-full bg-pg-dark flex flex-col ${isRTL ? 'border-l border-pg-border' : 'border-r border-pg-border'}`}
+      style={mobile ? {} : { position: 'fixed', [isRTL ? 'right' : 'left']: 0, top: 0, zIndex: 40 }}
     >
       {/* Logo */}
       <div className="h-16 flex items-center px-4 border-b border-pg-border flex-shrink-0">
@@ -86,9 +92,11 @@ export default function Sidebar({ mobile, onNavigate }) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2">
         {navSections.map((section, sectionIdx) => {
+          const visibleItems = section.items.filter(item => hasPerm(item.perm));
+          if (visibleItems.length === 0) return null;
+
           return (
             <div key={section.id}>
-              {/* Small divider between sections — not on the first one */}
               {sectionIdx > 0 && !collapsed && (
                 <div className="mt-3 mb-2 px-3">
                   <div className="h-px bg-pg-border" />
@@ -98,7 +106,7 @@ export default function Sidebar({ mobile, onNavigate }) {
                 <div className="h-px bg-pg-border mx-2 my-2" />
               )}
 
-              {section.items.map(item => {
+              {visibleItems.map(item => {
                       const isActive = item.exact
                         ? location.pathname === item.path
                         : location.pathname.startsWith(item.path);
@@ -117,19 +125,19 @@ export default function Sidebar({ mobile, onNavigate }) {
                           {isActive && (
                             <motion.div
                               layoutId="activeTab"
-                              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full"
+                              className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-0 bottom-0 w-[3px] ${isRTL ? 'rounded-l-full' : 'rounded-r-full'}`}
                               style={{ background: 'linear-gradient(180deg, #a855f7, #fbbf24)' }}
                               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
                           )}
-                          <div className={`flex items-center justify-center ${collapsed ? '' : 'w-5 mr-3'}`}>
+                          <div className={`flex items-center justify-center ${collapsed ? '' : isRTL ? 'w-5 ml-3' : 'w-5 mr-3'}`}>
                             <item.icon className="w-[18px] h-[18px]" />
                           </div>
                           {!collapsed && (
                             <span className="text-[13px] font-medium whitespace-nowrap leading-none">{t(item.label)}</span>
                           )}
                           {collapsed && (
-                            <div className="absolute left-full ml-2 px-2 py-1 bg-pg-card border border-pg-border rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                            <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2 py-1 bg-pg-card border border-pg-border rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50`}>
                               {t(item.label)}
                             </div>
                           )}
