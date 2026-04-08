@@ -1,0 +1,6 @@
+[
+  {
+    "src": "^/(?!static|api|uploads|favicon|manifest|robots|_redirects).*$",
+    "dest": "/index.html"
+  }
+]

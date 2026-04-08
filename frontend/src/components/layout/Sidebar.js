@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleSidebar } from '../../store/uiSlice';
@@ -8,7 +8,7 @@ import {
   HiOutlineCube, HiOutlineDesktopComputer, HiOutlineCurrencyDollar, HiOutlineCog,
   HiOutlineChartBar, HiOutlineUsers, HiOutlineDocumentText,
   HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineAdjustments,
-  HiOutlineChevronDown, HiOutlineTruck, HiOutlineTrendingUp,
+  HiOutlineTruck, HiOutlineTrendingUp,
   HiOutlineRefresh, HiOutlineClipboardCheck, HiOutlineDocumentDuplicate
 } from 'react-icons/hi';
 import { useI18n } from '../../hooks/useI18n';
@@ -77,16 +77,6 @@ export default function Sidebar({ mobile, onNavigate }) {
   const { t } = useI18n();
   const collapsed = mobile ? false : sidebarCollapsed;
 
-  // Section open/close state — default all open
-  const [openSections, setOpenSections] = useState(
-    Object.fromEntries(navSections.map(s => [s.id, true]))
-  );
-
-  const toggleSection = (id) => {
-    if (collapsed) return;
-    setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
   const handleNavClick = () => {
     if (onNavigate) onNavigate();
   };
@@ -117,40 +107,20 @@ export default function Sidebar({ mobile, onNavigate }) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2">
-        {navSections.map(section => {
-          const isOpen = openSections[section.id];
-          const hasActiveChild = section.items.some(item =>
-            item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
-          );
-
+        {navSections.map((section, sectionIdx) => {
           return (
-            <div key={section.id} className="mb-1">
-              {/* Section header */}
-              {!collapsed ? (
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-                    hasActiveChild ? 'text-pg-purple' : 'text-gray-600 hover:text-gray-400'
-                  }`}
-                >
-                  <span>{t(section.label)}</span>
-                  <HiOutlineChevronDown className={`w-3 h-3 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
-                </button>
-              ) : (
+            <div key={section.id}>
+              {/* Small divider between sections — not on the first one */}
+              {sectionIdx > 0 && !collapsed && (
+                <div className="mt-3 mb-2 px-3">
+                  <div className="h-px bg-pg-border" />
+                </div>
+              )}
+              {sectionIdx > 0 && collapsed && (
                 <div className="h-px bg-pg-border mx-2 my-2" />
               )}
 
-              {/* Section items */}
-              <AnimatePresence initial={false}>
-                {(isOpen || collapsed) && (
-                  <motion.div
-                    initial={collapsed ? false : { height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={collapsed ? undefined : { height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    {section.items.map(item => {
+              {section.items.map(item => {
                       const isActive = item.exact
                         ? location.pathname === item.path
                         : location.pathname.startsWith(item.path);
@@ -188,9 +158,6 @@ export default function Sidebar({ mobile, onNavigate }) {
                         </NavLink>
                       );
                     })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           );
         })}
