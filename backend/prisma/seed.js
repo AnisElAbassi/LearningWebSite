@@ -110,11 +110,11 @@ async function main() {
   // ─── DEFAULT ADMIN USER ─────────────────────────────────────────────────────
   const passwordHash = await bcrypt.hash('admin123', 12);
   await prisma.user.upsert({
-    where: { email: 'admin@nexushq.io' },
+    where: { email: 'admin@pixelgate.gg' },
     update: {},
     create: {
       name: 'Admin',
-      email: 'admin@nexushq.io',
+      email: 'admin@pixelgate.gg',
       passwordHash,
       roleId: adminRole.id
     }
