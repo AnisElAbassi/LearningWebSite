@@ -15,19 +15,24 @@ export default function DealsPage() {
   const [clients, setClients] = useState([]);
   const [experiences, setExperiences] = useState([]);
   const [view, setView] = useState('pipeline');
+  const [funnel, setFunnel] = useState([]);
 
   const fetchPipeline = async () => {
-    const [pRes, cRes, eRes] = await Promise.all([
+    const [pRes, cRes, eRes, fRes] = await Promise.all([
       api.get('/deals/pipeline'),
       api.get('/clients'),
-      api.get('/experiences')
+      api.get('/experiences'),
+      api.get('/analytics/deal-funnel').catch(() => ({ data: [] }))
     ]);
     setPipeline(pRes.data);
     setClients(cRes.data.clients || []);
     setExperiences(eRes.data);
+    setFunnel(fRes.data || []);
   };
 
   useEffect(() => { fetchPipeline(); }, []);
+
+  const maxCount = Math.max(...funnel.map(f => f.count), 1);
 
   return (
     <div className="space-y-6">
@@ -42,6 +47,32 @@ export default function DealsPage() {
           </button>
         </div>
       </div>
+
+      {/* Deal Funnel */}
+      {funnel.length > 0 && (
+        <div className="glass-card rounded-xl p-5">
+          <h3 className="font-inter font-bold text-sm text-gray-400 mb-3 uppercase tracking-wider">Conversion Funnel</h3>
+          <div className="space-y-2">
+            {funnel.filter(f => f.stage !== 'lost').map(f => (
+              <div key={f.stage} className="flex items-center gap-3">
+                <span className="text-xs text-gray-400 w-24 text-right">{f.label}</span>
+                <div className="flex-1 h-6 rounded-full bg-pg-dark2 overflow-hidden relative">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(f.count / maxCount) * 100}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: stageColors[f.stage] || '#a855f7', minWidth: f.count > 0 ? '2rem' : 0 }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/80">
+                    {f.count > 0 ? `${f.count} — €${(f.value || 0).toLocaleString()}` : ''}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {view === 'pipeline' ? (
         <div className="w-full overflow-x-scroll pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>

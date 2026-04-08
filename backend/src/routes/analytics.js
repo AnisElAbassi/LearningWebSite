@@ -25,7 +25,12 @@ router.get('/dashboard', authenticate, async (req, res) => {
       overdueInvoices,
       maintenanceAlerts,
       popularExperiences,
-      recentActivity
+      recentActivity,
+      staffToday,
+      hwInUse,
+      hwTotal,
+      invoicesDueSoon,
+      revenueTrend
     ] = await Promise.all([
       // Today's events
       prisma.event.findMany({
@@ -84,7 +89,33 @@ router.get('/dashboard', authenticate, async (req, res) => {
         include: { user: { select: { name: true } } },
         orderBy: { timestamp: 'desc' },
         take: 10
-      })
+      }),
+      // Staff assigned to today's events
+      prisma.eventStaff.findMany({
+        where: { event: { startTime: { gte: todayStart, lt: todayEnd }, status: { not: 'cancelled' } } },
+        include: { user: { select: { name: true } }, event: { select: { startTime: true, endTime: true, client: { select: { companyName: true } } } } }
+      }),
+      // Hardware utilization
+      prisma.hardwareItem.count({ where: { status: 'in_use' } }),
+      prisma.hardwareItem.count({ where: { status: { not: 'retired' } } }),
+      // Invoices due within 7 days
+      prisma.invoice.findMany({
+        where: { dueDate: { gte: todayStart, lte: weekEnd }, status: { notIn: ['paid', 'cancelled'] } },
+        include: { client: { select: { companyName: true } } },
+        orderBy: { dueDate: 'asc' },
+        take: 5
+      }),
+      // Revenue trend (last 6 months for sparkline)
+      (async () => {
+        const trend = [];
+        for (let i = 5; i >= 0; i--) {
+          const s = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const e = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+          const r = await prisma.eventCost.aggregate({ where: { event: { startTime: { gte: s, lte: e }, status: { notIn: ['cancelled'] } } }, _sum: { revenue: true } });
+          trend.push(r._sum.revenue || 0);
+        }
+        return trend;
+      })()
     ]);
 
     // Enrich popular experiences with names
@@ -110,7 +141,14 @@ router.get('/dashboard', authenticate, async (req, res) => {
         name: expMap[p.experienceId] || 'Unknown',
         count: p._count
       })),
-      recentActivity
+      recentActivity,
+      currentMargin: monthRevenue._sum.revenue > 0
+        ? ((monthRevenue._sum.revenue - (monthRevenue._sum.totalCost || 0)) / monthRevenue._sum.revenue * 100)
+        : 0,
+      staffToday: staffToday.map(s => ({ name: s.user.name, client: s.event.client.companyName, start: s.event.startTime, end: s.event.endTime })),
+      hardwareUtilization: hwTotal > 0 ? Math.round((hwInUse / hwTotal) * 100) : 0,
+      invoicesDueSoon,
+      revenueTrend,
     });
   } catch (err) {
     handleError(res, err, 'analytics');
@@ -179,6 +217,56 @@ router.get('/experience-recommender', authenticate, async (req, res) => {
     })).sort((a, b) => b.score - a.score);
 
     res.json(experiences.slice(0, 5));
+  } catch (err) {
+    handleError(res, err, 'analytics');
+  }
+});
+
+// GET /api/analytics/deal-funnel — deals grouped by stage
+router.get('/deal-funnel', authenticate, async (req, res) => {
+  try {
+    const stages = ['prospect', 'proposal_sent', 'negotiating', 'confirmed', 'completed', 'lost'];
+    const counts = await prisma.deal.groupBy({ by: ['stage'], _count: true, _sum: { price: true } });
+    const result = stages.map(stage => {
+      const match = counts.find(c => c.stage === stage);
+      return {
+        stage,
+        label: stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        count: match?._count || 0,
+        value: match?._sum?.price || 0,
+      };
+    });
+    res.json(result);
+  } catch (err) {
+    handleError(res, err, 'analytics');
+  }
+});
+
+// GET /api/analytics/margin-trend — monthly margin % over time
+router.get('/margin-trend', authenticate, async (req, res) => {
+  try {
+    const { months = 12 } = req.query;
+    const data = [];
+    const now = new Date();
+
+    for (let i = parseInt(months) - 1; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const result = await prisma.eventCost.aggregate({
+        where: { event: { startTime: { gte: start, lte: end }, status: { notIn: ['cancelled'] } } },
+        _sum: { revenue: true, totalCost: true },
+        _count: true,
+      });
+      const rev = result._sum.revenue || 0;
+      const cost = result._sum.totalCost || 0;
+      data.push({
+        month: start.toLocaleString('default', { month: 'short', year: 'numeric' }),
+        margin: rev > 0 ? ((rev - cost) / rev * 100) : 0,
+        events: result._count,
+      });
+    }
+
+    res.json(data);
   } catch (err) {
     handleError(res, err, 'analytics');
   }
