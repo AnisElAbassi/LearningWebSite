@@ -69,6 +69,9 @@ function App() {
         <Route path="reports/monthly" element={<Navigate to="/reports" replace />} />
         <Route path="staff" element={<Navigate to="/settings?tab=team" replace />} />
         <Route path="staff/availability" element={<Navigate to="/settings?tab=team" replace />} />
+
+        {/* Catch-all — redirect unknown routes to dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

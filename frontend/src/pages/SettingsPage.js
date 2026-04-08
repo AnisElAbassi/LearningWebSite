@@ -17,14 +17,18 @@ export default function SettingsPage() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [sRes, lRes, cfRes] = await Promise.all([
-      api.get('/settings'),
-      api.get('/lookups'),
-      api.get('/clients/custom-fields/all')
-    ]);
-    setSettings(sRes.data);
-    setLookups(lRes.data);
-    setCustomFields(cfRes.data);
+    try {
+      const [sRes, lRes, cfRes] = await Promise.allSettled([
+        api.get('/settings'),
+        api.get('/lookups'),
+        api.get('/clients/custom-fields/all')
+      ]);
+      if (sRes.status === 'fulfilled') setSettings(sRes.value.data);
+      if (lRes.status === 'fulfilled') setLookups(lRes.value.data);
+      if (cfRes.status === 'fulfilled') setCustomFields(cfRes.value.data);
+    } catch (err) {
+      toast.error('Failed to load settings');
+    }
     setLoading(false);
   };
 

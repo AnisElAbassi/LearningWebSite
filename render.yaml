@@ -18,6 +18,21 @@ services:
       - key: NODE_ENV
         value: production
 
+  - type: web
+    name: pixelgate-ops
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    plan: free
+    envVars:
+      - key: REACT_APP_API_URL
+        sync: false
+
 databases:
   - name: pixelgate-ops-db
     plan: free
