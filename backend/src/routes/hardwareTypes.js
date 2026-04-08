@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -11,7 +12,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(types);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareTypes');
   }
 });
 
@@ -22,7 +23,7 @@ router.post('/', authenticate, authorize('hardware.create'), async (req, res) =>
     await logActivity(req.user.id, 'created', 'hardware_type', type.id, { name: req.body.name }, req.ip);
     res.status(201).json(type);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareTypes');
   }
 });
 
@@ -33,7 +34,7 @@ router.put('/:id', authenticate, authorize('hardware.update'), async (req, res) 
     await logActivity(req.user.id, 'updated', 'hardware_type', type.id, { name: req.body.name }, req.ip);
     res.json(type);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareTypes');
   }
 });
 
@@ -47,7 +48,7 @@ router.delete('/:id', authenticate, authorize('hardware.delete'), async (req, re
     await logActivity(req.user.id, 'deleted', 'hardware_type', id, null, req.ip);
     res.json({ message: 'Hardware type deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareTypes');
   }
 });
 

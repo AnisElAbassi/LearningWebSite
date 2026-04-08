@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -27,7 +28,7 @@ router.post('/login', async (req, res) => {
     const { passwordHash, twoFactorSecret, ...userData } = user;
     res.json({ token, user: userData });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'auth');
   }
 });
 
@@ -49,7 +50,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     await logActivity(req.user.id, 'password_changed', 'user', req.user.id, null, req.ip);
     res.json({ message: 'Password updated' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'auth');
   }
 });
 

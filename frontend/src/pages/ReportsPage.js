@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
-import { HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineDownload, HiOutlineTrendingUp, HiOutlineTrendingDown } from 'react-icons/hi';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 import { useI18n } from '../hooks/useI18n';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
@@ -20,8 +22,6 @@ export default function ReportsPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(0); // 0 = full year
   const [clientId, setClientId] = useState('');
-  const [tab, setTab] = useState('overview');
-
   // Load filter options
   useEffect(() => {
     Promise.all([
@@ -42,15 +42,23 @@ export default function ReportsPage() {
     Promise.all([
       api.get('/reports/monthly', { params: month > 0 ? { year, month } : { year, month: new Date().getMonth() + 1 } }),
       api.get('/analytics/revenue-chart', { params: { months: 12 } }),
-      clientId ? api.get(`/reports/client/${clientId}`) : Promise.resolve(null)
-    ]).then(([reportRes, chartRes, clientRes]) => {
+      clientId ? api.get(`/reports/client/${clientId}`) : Promise.resolve(null),
+      api.get('/costs/profitability/experiences'),
+      api.get('/costs/profitability/clients'),
+    ]).then(([reportRes, chartRes, clientRes, expRes, clRes]) => {
       setReport(clientRes ? { ...reportRes.data, clientReport: clientRes.data } : reportRes.data);
       setRevenueChart(chartRes.data || []);
+      setExpProfitability(expRes.data || []);
+      setClientProfitability(clRes.data || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [year, month, clientId]);
 
-  const TABS = ['overview', 'revenue', 'costs', 'clients', 'experiences'];
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'overview');
+  const [expProfitability, setExpProfitability] = useState([]);
+  const [clientProfitability, setClientProfitability] = useState([]);
+  const TABS = ['overview', 'revenue', 'costs', 'clients', 'experiences', 'profitability'];
 
   if (loading && !report) return (
     <div className="animate-pulse space-y-4">
@@ -275,6 +283,65 @@ export default function ReportsPage() {
               ))}
             </div>
             {(r.topExperiences || []).length === 0 && <p className="text-gray-500 text-center py-8">No data</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Profitability (absorbed from MarginAnalysisPage) */}
+      {tab === 'profitability' && (
+        <div className="space-y-6">
+          {/* By Experience */}
+          <h2 className="font-inter font-bold text-lg text-white flex items-center gap-2">
+            <HiOutlineTrendingUp className="w-5 h-5 text-pg-purple" /> By Experience
+          </h2>
+          {expProfitability.length > 0 && (
+            <div className="glass-card rounded-xl p-5">
+              <div style={{ height: Math.max(200, expProfitability.length * 40) }}>
+                <Bar data={{
+                  labels: expProfitability.map(e => e.name),
+                  datasets: [{ label: 'Margin %', data: expProfitability.map(e => e.avgMargin ?? 0), backgroundColor: expProfitability.map(e => (e.avgMargin ?? 0) >= 30 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)'), borderRadius: 6 }]
+                }} options={{ responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { grid: { color: '#1e1e3a' }, ticks: { color: '#94a3b8', callback: v => `${v}%` }, min: 0, max: 100 }, y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } } }, plugins: { legend: { display: false } } }} />
+              </div>
+            </div>
+          )}
+          <div className="glass-card rounded-xl overflow-hidden">
+            <table className="table-dark">
+              <thead><tr><th>Experience</th><th>Revenue</th><th>Cost</th><th>Margin</th><th>Events</th></tr></thead>
+              <tbody>
+                {expProfitability.map((exp, i) => (
+                  <tr key={i}>
+                    <td className="font-medium">{exp.name}</td>
+                    <td className="text-pg-yellow font-mono text-sm">{formatMoney(exp.totalRevenue)}</td>
+                    <td className="text-gray-300 font-mono text-sm">{formatMoney(exp.totalCost)}</td>
+                    <td><span className={`font-bold text-sm ${(exp.avgMargin ?? 0) >= 30 ? 'text-neon-green' : 'text-neon-red'}`}>{(exp.avgMargin ?? 0).toFixed(1)}%</span></td>
+                    <td className="text-gray-500">{exp.count ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {expProfitability.length === 0 && <p className="text-gray-500 text-sm text-center py-8">No experience profitability data</p>}
+          </div>
+
+          {/* By Client */}
+          <h2 className="font-inter font-bold text-lg text-white flex items-center gap-2">
+            <HiOutlineTrendingDown className="w-5 h-5 text-pg-yellow" /> By Client
+          </h2>
+          <div className="glass-card rounded-xl overflow-hidden">
+            <table className="table-dark">
+              <thead><tr><th>Client</th><th>Revenue</th><th>Cost</th><th>Margin</th><th>Events</th></tr></thead>
+              <tbody>
+                {clientProfitability.map((cl, i) => (
+                  <tr key={i}>
+                    <td className="font-medium">{cl.name}</td>
+                    <td className="text-pg-yellow font-mono text-sm">{formatMoney(cl.totalRevenue)}</td>
+                    <td className="text-gray-300 font-mono text-sm">{formatMoney(cl.totalCost)}</td>
+                    <td><span className={`font-bold text-sm ${(cl.avgMargin ?? 0) >= 30 ? 'text-neon-green' : 'text-neon-red'}`}>{(cl.avgMargin ?? 0).toFixed(1)}%</span></td>
+                    <td className="text-gray-500">{cl.count ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {clientProfitability.length === 0 && <p className="text-gray-500 text-sm text-center py-8">No client profitability data</p>}
           </div>
         </div>
       )}

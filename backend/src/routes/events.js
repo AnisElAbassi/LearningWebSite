@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 const { sendThankYouEmail } = require('../services/emailService');
@@ -45,7 +46,7 @@ router.get('/', authenticate, async (req, res) => {
     ]);
     res.json({ events, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -59,7 +60,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -111,7 +112,7 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
     const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventIncludes });
     res.status(201).json(full);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -142,7 +143,7 @@ router.put('/:id', authenticate, authorize('events.update'), async (req, res) =>
     const full = await prisma.event.findUnique({ where: { id }, include: eventIncludes });
     res.json(full);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -161,7 +162,7 @@ router.put('/:id/status', authenticate, authorize('events.update'), async (req, 
 
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -174,7 +175,7 @@ router.put('/:id/checklist/:checkId', authenticate, async (req, res) => {
     });
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -186,7 +187,7 @@ router.post('/:id/waitlist', authenticate, async (req, res) => {
     });
     res.status(201).json(entry);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -198,7 +199,7 @@ router.delete('/:id', authenticate, authorize('events.delete'), async (req, res)
     await logActivity(req.user.id, 'cancelled', 'event', id, null, req.ip);
     res.json({ message: 'Event cancelled' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 
@@ -248,7 +249,7 @@ router.post('/check-conflicts', authenticate, async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'events');
   }
 });
 

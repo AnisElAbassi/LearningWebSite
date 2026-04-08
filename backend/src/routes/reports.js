@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize } = require('../middleware/auth');
 
@@ -98,7 +99,7 @@ router.get('/monthly', authenticate, authorize('reports.view'), async (req, res)
       feedbackCount: feedback.length
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'reports');
   }
 });
 
@@ -124,7 +125,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'reports');
   }
 });
 
@@ -179,7 +180,7 @@ router.get('/client/:clientId', authenticate, async (req, res) => {
       invoices
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'reports');
   }
 });
 

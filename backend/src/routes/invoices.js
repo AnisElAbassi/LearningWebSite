@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -23,7 +24,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(invoices);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -49,7 +50,7 @@ router.get('/aging', authenticate, async (req, res) => {
 
     res.json(aging);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -63,7 +64,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     res.json(invoice);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -99,7 +100,7 @@ router.post('/', authenticate, authorize('invoices.create'), async (req, res) =>
     await logActivity(req.user.id, 'created', 'invoice', invoice.id, { invoiceNumber: invoice.invoiceNumber }, req.ip);
     res.status(201).json(invoice);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -144,7 +145,7 @@ router.post('/from-deal/:dealId', authenticate, authorize('invoices.create'), as
     await logActivity(req.user.id, 'created', 'invoice', invoice.id, { fromDealId: deal.id }, req.ip);
     res.status(201).json(invoice);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -168,7 +169,7 @@ router.put('/:id', authenticate, authorize('invoices.update'), async (req, res) 
     });
     res.json(invoice);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -183,7 +184,7 @@ router.put('/:id/status', authenticate, authorize('invoices.update'), async (req
     await logActivity(req.user.id, 'status_changed', 'invoice', id, { status }, req.ip);
     res.json(invoice);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 
@@ -215,7 +216,7 @@ router.post('/:id/payments', authenticate, authorize('invoices.update'), async (
     await logActivity(req.user.id, 'payment_recorded', 'invoice', invoiceId, { amount: req.body.amount }, req.ip);
     res.status(201).json(payment);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'invoices');
   }
 });
 

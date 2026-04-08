@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -23,7 +24,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(experiences);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -43,7 +44,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!experience) return res.status(404).json({ error: 'Experience not found' });
     res.json(experience);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -63,7 +64,7 @@ router.post('/', authenticate, authorize('experiences.create'), async (req, res)
     await logActivity(req.user.id, 'created', 'experience', experience.id, { name: data.name }, req.ip);
     res.status(201).json(experience);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -101,7 +102,7 @@ router.put('/:id', authenticate, authorize('experiences.update'), async (req, re
     });
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -113,7 +114,7 @@ router.delete('/:id', authenticate, authorize('experiences.delete'), async (req,
     await logActivity(req.user.id, 'archived', 'experience', id, null, req.ip);
     res.json({ message: 'Experience archived' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -124,7 +125,7 @@ router.get('/tags/all', authenticate, async (req, res) => {
     const tags = await prisma.experienceTag.findMany({ orderBy: { name: 'asc' } });
     res.json(tags);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -133,7 +134,7 @@ router.post('/tags', authenticate, authorize('experiences.create'), async (req, 
     const tag = await prisma.experienceTag.create({ data: req.body });
     res.status(201).json(tag);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 
@@ -142,7 +143,7 @@ router.delete('/tags/:id', authenticate, authorize('experiences.delete'), async 
     await prisma.experienceTag.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Tag deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'experiences');
   }
 });
 

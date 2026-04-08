@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate } = require('../middleware/auth');
 
@@ -48,7 +49,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
 
     res.json({ items, stats });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'packingList');
   }
 });
 
@@ -60,7 +61,7 @@ router.post('/event/:eventId', authenticate, async (req, res) => {
     });
     res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'packingList');
   }
 });
 
@@ -73,7 +74,7 @@ router.put('/:id', authenticate, async (req, res) => {
     });
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'packingList');
   }
 });
 
@@ -86,7 +87,7 @@ router.post('/event/:eventId/regenerate', authenticate, async (req, res) => {
     // Re-fetch to trigger auto-generation on next GET
     res.json({ message: 'Packing list regenerated. Fetch again to see new list.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'packingList');
   }
 });
 

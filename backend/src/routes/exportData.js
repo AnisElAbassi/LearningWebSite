@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize } = require('../middleware/auth');
 
@@ -33,7 +34,7 @@ router.get('/events', authenticate, authorize('events.view'), async (req, res) =
     res.setHeader('Content-Disposition', 'attachment; filename=events.csv');
     res.send(csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'exportData');
   }
 });
 
@@ -58,7 +59,7 @@ router.get('/clients', authenticate, authorize('clients.view'), async (req, res)
     res.setHeader('Content-Disposition', 'attachment; filename=clients.csv');
     res.send(csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'exportData');
   }
 });
 
@@ -83,7 +84,7 @@ router.get('/deals', authenticate, authorize('deals.view'), async (req, res) => 
     res.setHeader('Content-Disposition', 'attachment; filename=deals.csv');
     res.send(csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'exportData');
   }
 });
 
@@ -109,7 +110,7 @@ router.get('/hardware', authenticate, authorize('hardware.view'), async (req, re
     res.setHeader('Content-Disposition', 'attachment; filename=hardware.csv');
     res.send(csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'exportData');
   }
 });
 

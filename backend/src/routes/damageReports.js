@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -22,7 +23,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'damageReports');
   }
 });
 
@@ -75,7 +76,7 @@ router.post('/', authenticate, async (req, res) => {
     await logActivity(req.user.id, 'created', 'damage_report', report.id, { itemId, severity }, req.ip);
     res.status(201).json(report);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'damageReports');
   }
 });
 
@@ -88,7 +89,7 @@ router.put('/:id/resolve', authenticate, authorize('hardware.update'), async (re
     });
     res.json(report);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'damageReports');
   }
 });
 

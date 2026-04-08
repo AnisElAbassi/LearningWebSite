@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -11,7 +12,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(bundles);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareBundles');
   }
 });
 
@@ -26,7 +27,7 @@ router.post('/', authenticate, authorize('hardware.create'), async (req, res) =>
     await logActivity(req.user.id, 'created', 'hardware_bundle', bundle.id, { name: data.name }, req.ip);
     res.status(201).json(bundle);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareBundles');
   }
 });
 
@@ -47,7 +48,7 @@ router.put('/:id', authenticate, authorize('hardware.update'), async (req, res) 
     await logActivity(req.user.id, 'updated', 'hardware_bundle', id, { name: data.name }, req.ip);
     res.json(bundle);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareBundles');
   }
 });
 
@@ -57,7 +58,7 @@ router.delete('/:id', authenticate, authorize('hardware.delete'), async (req, re
     await prisma.hardwareBundle.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Bundle deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardwareBundles');
   }
 });
 

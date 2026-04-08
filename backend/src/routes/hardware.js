@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -25,7 +26,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 
@@ -65,7 +66,7 @@ router.get('/available', authenticate, async (req, res) => {
     });
     res.json(available);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 
@@ -83,7 +84,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Hardware item not found' });
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 
@@ -98,7 +99,7 @@ router.post('/', authenticate, authorize('hardware.create'), async (req, res) =>
     res.status(201).json(item);
   } catch (err) {
     if (err.code === 'P2002') return res.status(400).json({ error: 'Serial number already exists' });
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 
@@ -114,7 +115,7 @@ router.put('/:id', authenticate, authorize('hardware.update'), async (req, res) 
     await logActivity(req.user.id, 'updated', 'hardware', id, { name: req.body.name }, req.ip);
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 
@@ -126,7 +127,7 @@ router.delete('/:id', authenticate, authorize('hardware.delete'), async (req, re
     await logActivity(req.user.id, 'retired', 'hardware', id, null, req.ip);
     res.json({ message: 'Hardware item retired' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'hardware');
   }
 });
 

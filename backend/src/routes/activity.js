@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize } = require('../middleware/auth');
 
@@ -23,7 +24,7 @@ router.get('/', authenticate, authorize('activity.view'), async (req, res) => {
     ]);
     res.json({ logs, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'activity');
   }
 });
 

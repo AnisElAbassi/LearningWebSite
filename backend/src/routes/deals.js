@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -23,7 +24,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(deals);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -45,7 +46,7 @@ router.get('/pipeline', authenticate, async (req, res) => {
     }));
     res.json(pipeline);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -59,7 +60,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
     res.json(deal);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -74,7 +75,7 @@ router.post('/', authenticate, authorize('deals.create'), async (req, res) => {
     await logActivity(req.user.id, 'created', 'deal', deal.id, { title: data.title, clientId: data.clientId }, req.ip);
     res.status(201).json(deal);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -102,7 +103,7 @@ router.put('/:id', authenticate, authorize('deals.update'), async (req, res) => 
     });
     res.json(deal);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -114,7 +115,7 @@ router.post('/:id/documents', authenticate, authorize('deals.update'), async (re
     });
     res.status(201).json(doc);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 
@@ -126,7 +127,7 @@ router.delete('/:id', authenticate, authorize('deals.delete'), async (req, res) 
     await logActivity(req.user.id, 'deleted', 'deal', id, null, req.ip);
     res.json({ message: 'Deal deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'deals');
   }
 });
 

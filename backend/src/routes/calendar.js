@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate } = require('../middleware/auth');
 
@@ -41,7 +42,7 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json(calendarEvents);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'calendar');
   }
 });
 
@@ -76,7 +77,7 @@ router.get('/staff/:userId', authenticate, async (req, res) => {
       borderColor: '#7b2ff7'
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'calendar');
   }
 });
 
@@ -119,7 +120,7 @@ router.get('/smart-slots', authenticate, async (req, res) => {
 
     res.json(slots);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'calendar');
   }
 });
 

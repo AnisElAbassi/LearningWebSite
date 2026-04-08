@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const QRCode = require('qrcode');
 const { prisma, authenticate } = require('../middleware/auth');
@@ -33,7 +34,7 @@ router.get('/hardware/bulk', authenticate, async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'qrCodes');
   }
 });
 
@@ -62,7 +63,7 @@ router.get('/hardware/:id', authenticate, async (req, res) => {
       qrDataUrl
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'qrCodes');
   }
 });
 

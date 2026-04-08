@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -10,7 +11,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(roles);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'roles');
   }
 });
 
@@ -26,7 +27,7 @@ router.get('/permissions', authenticate, async (req, res) => {
     }
     res.json(grouped);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'roles');
   }
 });
 
@@ -44,7 +45,7 @@ router.post('/', authenticate, authorize('users.manage_roles'), async (req, res)
     await logActivity(req.user.id, 'created', 'role', role.id, { name }, req.ip);
     res.status(201).json(role);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'roles');
   }
 });
 
@@ -70,7 +71,7 @@ router.put('/:id', authenticate, authorize('users.manage_roles'), async (req, re
     await logActivity(req.user.id, 'updated', 'role', id, { name }, req.ip);
     res.json(role);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'roles');
   }
 });
 
@@ -84,7 +85,7 @@ router.delete('/:id', authenticate, authorize('users.manage_roles'), async (req,
     await logActivity(req.user.id, 'deleted', 'role', id, null, req.ip);
     res.json({ message: 'Role deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'roles');
   }
 });
 

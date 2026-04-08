@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -10,7 +11,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 
@@ -24,7 +25,7 @@ router.get('/:slug', authenticate, async (req, res) => {
     if (!category) return res.status(404).json({ error: 'Lookup category not found' });
     res.json(category);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 
@@ -36,7 +37,7 @@ router.post('/', authenticate, authorize('settings.manage'), async (req, res) =>
     });
     res.status(201).json(category);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 
@@ -52,7 +53,7 @@ router.post('/:slug/values', authenticate, authorize('settings.manage'), async (
     await logActivity(req.user.id, 'created', 'lookup_value', value.id, { slug: req.params.slug, value: req.body.value }, req.ip);
     res.status(201).json(value);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 
@@ -65,7 +66,7 @@ router.put('/values/:id', authenticate, authorize('settings.manage'), async (req
     });
     res.json(value);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 
@@ -78,7 +79,7 @@ router.delete('/values/:id', authenticate, authorize('settings.manage'), async (
     });
     res.json({ message: 'Lookup value deactivated' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'lookups');
   }
 });
 

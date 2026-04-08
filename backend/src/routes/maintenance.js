@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -20,7 +21,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(logs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'maintenance');
   }
 });
 
@@ -42,7 +43,7 @@ router.post('/', authenticate, authorize('hardware.update'), async (req, res) =>
     await logActivity(req.user.id, 'maintenance_reported', 'hardware', itemId, { issue }, req.ip);
     res.status(201).json(log);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'maintenance');
   }
 });
 
@@ -67,7 +68,7 @@ router.put('/:id/resolve', authenticate, authorize('hardware.update'), async (re
     await logActivity(req.user.id, 'maintenance_resolved', 'hardware', log.itemId, { resolution }, req.ip);
     res.json(log);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'maintenance');
   }
 });
 
@@ -90,7 +91,7 @@ router.get('/due', authenticate, async (req, res) => {
     });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'maintenance');
   }
 });
 

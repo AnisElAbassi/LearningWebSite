@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -18,7 +19,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
     }
     res.json({ items: costs, totals });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'logistics');
   }
 });
 
@@ -31,7 +32,7 @@ router.post('/event/:eventId', authenticate, authorize('logistics.create'), asyn
     await logActivity(req.user.id, 'created', 'logistics_cost', cost.id, { eventId: req.params.eventId, category: req.body.category }, req.ip);
     res.status(201).json(cost);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'logistics');
   }
 });
 
@@ -44,7 +45,7 @@ router.put('/:id', authenticate, authorize('logistics.update'), async (req, res)
     });
     res.json(cost);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'logistics');
   }
 });
 
@@ -54,7 +55,7 @@ router.delete('/:id', authenticate, authorize('logistics.delete'), async (req, r
     await prisma.eventLogisticsCost.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Logistics cost deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'logistics');
   }
 });
 
@@ -81,7 +82,7 @@ router.get('/summary', authenticate, async (req, res) => {
 
     res.json({ byCategory, total, itemCount: costs.length, items: costs });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'logistics');
   }
 });
 

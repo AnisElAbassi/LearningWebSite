@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate } = require('../middleware/auth');
 
@@ -17,7 +18,7 @@ router.get('/', authenticate, async (req, res) => {
     const unreadCount = await prisma.notification.count({ where: { userId: req.user.id, read: false } });
     res.json({ notifications, unreadCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'notifications');
   }
 });
 
@@ -30,7 +31,7 @@ router.put('/:id/read', authenticate, async (req, res) => {
     });
     res.json({ message: 'Marked as read' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'notifications');
   }
 });
 
@@ -43,7 +44,7 @@ router.put('/read-all', authenticate, async (req, res) => {
     });
     res.json({ message: 'All marked as read' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'notifications');
   }
 });
 
@@ -53,7 +54,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     await prisma.notification.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Notification deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'notifications');
   }
 });
 

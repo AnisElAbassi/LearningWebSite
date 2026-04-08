@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { prisma, authenticate, authorize } = require('../middleware/auth');
+const handleError = require('../utils/handleError');
 
 // POST /api/costs/calculate/:eventId — full cost calculation with depreciation
 router.post('/calculate/:eventId', authenticate, authorize('costs.manage'), async (req, res) => {
@@ -52,81 +53,85 @@ router.post('/calculate/:eventId', authenticate, authorize('costs.manage'), asyn
     const marginAmount = revenue - totalCost;
     const marginPct = revenue > 0 ? (marginAmount / revenue) * 100 : 0;
 
-    // Upsert event cost
-    const cost = await prisma.eventCost.upsert({
-      where: { eventId },
-      update: {
-        experienceCost, personnelCost, transportCost, foodCost, hotelCost, otherLogistics,
-        logisticsTotal, totalCost, revenue, marginAmount, marginPct, calculatedAt: new Date()
-      },
-      create: {
-        eventId, experienceCost, personnelCost, transportCost, foodCost, hotelCost, otherLogistics,
-        logisticsTotal, totalCost, revenue, marginAmount, marginPct
-      }
-    });
+    // Run all writes in a transaction for data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // Upsert event cost
+      const cost = await tx.eventCost.upsert({
+        where: { eventId },
+        update: {
+          experienceCost, personnelCost, transportCost, foodCost, hotelCost, otherLogistics,
+          logisticsTotal, totalCost, revenue, marginAmount, marginPct, calculatedAt: new Date()
+        },
+        create: {
+          eventId, experienceCost, personnelCost, transportCost, foodCost, hotelCost, otherLogistics,
+          logisticsTotal, totalCost, revenue, marginAmount, marginPct
+        }
+      });
 
-    // Check margin alert
-    const thresholdConfig = await prisma.systemConfig.findUnique({ where: { key: 'margin_alert_threshold' } });
-    const threshold = thresholdConfig ? parseFloat(thresholdConfig.value) : 30;
-    const isLowMargin = revenue > 0 && marginPct < threshold;
+      // Check margin alert
+      const thresholdConfig = await tx.systemConfig.findUnique({ where: { key: 'margin_alert_threshold' } });
+      const threshold = thresholdConfig ? parseFloat(thresholdConfig.value) : 30;
+      const isLowMargin = revenue > 0 && marginPct < threshold;
 
-    if (isLowMargin) {
-      const admins = await prisma.user.findMany({ where: { role: { name: 'admin' } } });
-      for (const admin of admins) {
-        await prisma.notification.create({
-          data: {
-            userId: admin.id, type: 'margin_alert', title: 'Low Margin Alert',
-            message: `Event #${eventId} margin is ${marginPct.toFixed(1)}% (below ${threshold}%)`,
-            actionUrl: `/events/${eventId}`
-          }
-        });
-      }
-    }
-
-    // If event is completed, increment hardware use counts and create depreciation logs
-    if (event.status === 'completed') {
-      for (const eh of event.hardware) {
-        const item = eh.item;
-        const expectedUses = item.expectedLifespanUses || item.type.expectedUses || 0;
-        const depPerUse = item.depreciationPerUse || (item.purchasePrice && expectedUses ? item.purchasePrice / expectedUses : 0);
-
-        // Check if already logged for this event
-        const existing = await prisma.assetDepreciationLog.findFirst({
-          where: { itemId: item.id, eventId }
-        });
-        if (!existing && depPerUse > 0) {
-          const newUseCount = item.currentUseCount + eh.quantity;
-          const newBookValue = Math.max(0, (item.purchasePrice || 0) - (depPerUse * newUseCount));
-          const eolReached = expectedUses > 0 && (newUseCount / expectedUses) >= (item.type.eolAlertThreshold || 0.8);
-
-          await prisma.hardwareItem.update({
-            where: { id: item.id },
-            data: { currentUseCount: newUseCount, bookValue: newBookValue, depreciationPerUse: depPerUse, eolReached }
+      if (isLowMargin) {
+        const admins = await tx.user.findMany({ where: { role: { name: 'admin' } } });
+        for (const admin of admins) {
+          await tx.notification.create({
+            data: {
+              userId: admin.id, type: 'margin_alert', title: 'Low Margin Alert',
+              message: `Event #${eventId} margin is ${marginPct.toFixed(1)}% (below ${threshold}%)`,
+              actionUrl: `/events/${eventId}`
+            }
           });
+        }
+      }
 
-          await prisma.assetDepreciationLog.create({
-            data: { itemId: item.id, eventId, depreciationAmt: depPerUse * eh.quantity, useCountAfter: newUseCount, bookValueAfter: newBookValue }
+      // If event is completed, increment hardware use counts and create depreciation logs
+      if (event.status === 'completed') {
+        for (const eh of event.hardware) {
+          const item = eh.item;
+          const expectedUses = item.expectedLifespanUses || item.type.expectedUses || 0;
+          const depPerUse = item.depreciationPerUse || (item.purchasePrice && expectedUses ? item.purchasePrice / expectedUses : 0);
+
+          const existing = await tx.assetDepreciationLog.findFirst({
+            where: { itemId: item.id, eventId }
           });
+          if (!existing && depPerUse > 0) {
+            const newUseCount = item.currentUseCount + eh.quantity;
+            const newBookValue = Math.max(0, (item.purchasePrice || 0) - (depPerUse * newUseCount));
+            const eolReached = expectedUses > 0 && (newUseCount / expectedUses) >= (item.type.eolAlertThreshold || 0.8);
 
-          if (eolReached && !item.eolReached) {
-            const admins = await prisma.user.findMany({ where: { role: { name: 'admin' } } });
-            for (const admin of admins) {
-              await prisma.notification.create({
-                data: {
-                  userId: admin.id, type: 'hardware_eol', title: 'Asset Near End of Life',
-                  message: `${item.name}: ${newUseCount}/${expectedUses} uses (${((newUseCount / expectedUses) * 100).toFixed(0)}%)`,
-                  actionUrl: `/hardware/${item.id}`
-                }
-              });
+            await tx.hardwareItem.update({
+              where: { id: item.id },
+              data: { currentUseCount: newUseCount, bookValue: newBookValue, depreciationPerUse: depPerUse, eolReached }
+            });
+
+            await tx.assetDepreciationLog.create({
+              data: { itemId: item.id, eventId, depreciationAmt: depPerUse * eh.quantity, useCountAfter: newUseCount, bookValueAfter: newBookValue }
+            });
+
+            if (eolReached && !item.eolReached) {
+              const admins = await tx.user.findMany({ where: { role: { name: 'admin' } } });
+              for (const admin of admins) {
+                await tx.notification.create({
+                  data: {
+                    userId: admin.id, type: 'hardware_eol', title: 'Asset Near End of Life',
+                    message: `${item.name}: ${newUseCount}/${expectedUses} uses (${((newUseCount / expectedUses) * 100).toFixed(0)}%)`,
+                    actionUrl: `/hardware/${item.id}`
+                  }
+                });
+              }
             }
           }
         }
       }
-    }
 
-    res.json({ ...cost, isLowMargin, threshold });
+      return { ...cost, isLowMargin, threshold };
+    });
+
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'costs');
   }
 });
 
@@ -140,7 +145,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
     if (!cost) return res.status(404).json({ error: 'Cost data not found. Calculate costs first.' });
     res.json(cost);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'costs');
   }
 });
 
@@ -178,7 +183,7 @@ router.get('/pnl', authenticate, async (req, res) => {
 
     res.json(summary);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'costs');
   }
 });
 
@@ -201,7 +206,7 @@ router.get('/profitability/experiences', authenticate, async (req, res) => {
     })).sort((a, b) => b.avgMargin - a.avgMargin);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'costs');
   }
 });
 
@@ -224,7 +229,7 @@ router.get('/profitability/clients', authenticate, async (req, res) => {
     })).sort((a, b) => b.totalRevenue - a.totalRevenue);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'costs');
   }
 });
 

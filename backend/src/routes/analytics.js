@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate } = require('../middleware/auth');
 
@@ -112,7 +113,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
       recentActivity
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'analytics');
   }
 });
 
@@ -142,7 +143,7 @@ router.get('/revenue-chart', authenticate, async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'analytics');
   }
 });
 
@@ -179,7 +180,7 @@ router.get('/experience-recommender', authenticate, async (req, res) => {
 
     res.json(experiences.slice(0, 5));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'analytics');
   }
 });
 

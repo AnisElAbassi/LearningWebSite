@@ -6,64 +6,42 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   HiOutlineHome, HiOutlineCalendar, HiOutlineClipboardList, HiOutlineUserGroup,
   HiOutlineCube, HiOutlineDesktopComputer, HiOutlineCurrencyDollar, HiOutlineCog,
-  HiOutlineChartBar, HiOutlineUsers, HiOutlineDocumentText,
+  HiOutlineChartBar, HiOutlineDocumentText,
   HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineAdjustments,
-  HiOutlineTruck, HiOutlineTrendingUp,
-  HiOutlineRefresh, HiOutlineClipboardCheck, HiOutlineDocumentDuplicate
+  HiOutlineDocumentDuplicate
 } from 'react-icons/hi';
 import { useI18n } from '../../hooks/useI18n';
 
 const navSections = [
   {
-    // Daily operations — what you check every day
-    id: 'operations', label: 'nav_operations', items: [
+    id: 'operations', items: [
       { path: '/', icon: HiOutlineHome, label: 'dashboard', exact: true },
       { path: '/calendar', icon: HiOutlineCalendar, label: 'calendar' },
       { path: '/events', icon: HiOutlineClipboardList, label: 'events' },
+      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences' },
     ]
   },
   {
-    // Client relationship — who you work with
-    id: 'crm', label: 'nav_clients', items: [
+    id: 'business', items: [
       { path: '/clients', icon: HiOutlineUserGroup, label: 'clients' },
       { path: '/deals', icon: HiOutlineCurrencyDollar, label: 'deals' },
+      { path: '/invoices', icon: HiOutlineDocumentDuplicate, label: 'invoices' },
     ]
   },
   {
-    // What you offer
-    id: 'catalog', label: 'nav_catalog', items: [
-      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences' },
-      { path: '/staff', icon: HiOutlineUsers, label: 'staff_roles' },
-    ]
-  },
-  {
-    // Physical items you own
-    id: 'assets', label: 'nav_assets', items: [
+    id: 'assets', items: [
       { path: '/hardware', icon: HiOutlineCube, label: 'hardware' },
-      { path: '/assets/lifecycle', icon: HiOutlineRefresh, label: 'asset_lifecycle' },
-      { path: '/reports/qr-labels', icon: HiOutlineCube, label: 'qr_labels' },
       { path: '/maintenance', icon: HiOutlineAdjustments, label: 'maintenance' },
     ]
   },
   {
-    // Money in and out
-    id: 'finance', label: 'nav_finance', items: [
-      { path: '/invoices', icon: HiOutlineDocumentDuplicate, label: 'invoices' },
-      { path: '/costs/events', icon: HiOutlineCurrencyDollar, label: 'event_costs' },
-      { path: '/costs/logistics', icon: HiOutlineTruck, label: 'logistics_costs' },
-      { path: '/costs/margins', icon: HiOutlineTrendingUp, label: 'margin_analysis' },
-    ]
-  },
-  {
-    // Big picture
-    id: 'reports', label: 'nav_reports', items: [
+    id: 'insights', items: [
+      { path: '/finance', icon: HiOutlineCurrencyDollar, label: 'finance' },
       { path: '/reports', icon: HiOutlineChartBar, label: 'reports' },
-      { path: '/finance', icon: HiOutlineChartBar, label: 'revenue_pnl' },
     ]
   },
   {
-    // System config
-    id: 'settings', label: 'nav_system', items: [
+    id: 'system', items: [
       { path: '/settings', icon: HiOutlineCog, label: 'settings' },
       { path: '/activity', icon: HiOutlineDocumentText, label: 'activity_log' },
     ]

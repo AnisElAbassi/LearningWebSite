@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
@@ -12,7 +13,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(users.map(({ passwordHash, twoFactorSecret, ...u }) => u));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'users');
   }
 });
 
@@ -27,7 +28,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const { passwordHash, twoFactorSecret, ...userData } = user;
     res.json(userData);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'users');
   }
 });
 
@@ -49,7 +50,7 @@ router.post('/', authenticate, authorize('users.create'), async (req, res) => {
     res.status(201).json(userData);
   } catch (err) {
     if (err.code === 'P2002') return res.status(400).json({ error: 'Email already exists' });
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'users');
   }
 });
 
@@ -76,7 +77,7 @@ router.put('/:id', authenticate, authorize('users.update'), async (req, res) => 
     const { passwordHash, twoFactorSecret, ...userData } = user;
     res.json(userData);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'users');
   }
 });
 
@@ -88,7 +89,7 @@ router.delete('/:id', authenticate, authorize('users.delete'), async (req, res) 
     await logActivity(req.user.id, 'deactivated', 'user', id, null, req.ip);
     res.json({ message: 'User deactivated' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'users');
   }
 });
 

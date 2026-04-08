@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize } = require('../middleware/auth');
 
@@ -27,7 +28,7 @@ router.get('/lifecycle', authenticate, async (req, res) => {
     enriched.sort((a, b) => b.lifespanPct - a.lifespanPct);
     res.json(enriched);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'assetLifecycle');
   }
 });
 
@@ -55,7 +56,7 @@ router.get('/lifecycle/alerts', authenticate, async (req, res) => {
 
     res.json(alerts);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'assetLifecycle');
   }
 });
 
@@ -69,7 +70,7 @@ router.get('/lifecycle/:itemId/history', authenticate, async (req, res) => {
     });
     res.json(logs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'assetLifecycle');
   }
 });
 
@@ -88,7 +89,7 @@ router.get('/lifecycle/summary', authenticate, async (req, res) => {
 
     res.json({ totalPurchaseValue, totalBookValue, totalDepreciated, itemCount, eolCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'assetLifecycle');
   }
 });
 
@@ -131,7 +132,7 @@ router.post('/lifecycle/:itemId/increment', authenticate, authorize('assets.mana
 
     res.json({ currentUseCount: newUseCount, bookValue: newBookValue, depreciationPerUse: depPerUse, eolReached });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'assetLifecycle');
   }
 });
 

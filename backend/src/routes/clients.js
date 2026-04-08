@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -28,7 +29,7 @@ router.get('/', authenticate, async (req, res) => {
     ]);
     res.json({ clients, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -46,7 +47,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!client) return res.status(404).json({ error: 'Client not found' });
     res.json(client);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -67,7 +68,7 @@ router.post('/', authenticate, authorize('clients.create'), async (req, res) => 
     await logActivity(req.user.id, 'created', 'client', client.id, { companyName: data.companyName }, req.ip);
     res.status(201).json(client);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -96,7 +97,7 @@ router.put('/:id', authenticate, authorize('clients.update'), async (req, res) =
     });
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -108,7 +109,7 @@ router.delete('/:id', authenticate, authorize('clients.delete'), async (req, res
     await logActivity(req.user.id, 'deleted', 'client', id, null, req.ip);
     res.json({ message: 'Client deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -118,7 +119,7 @@ router.get('/custom-fields/all', authenticate, async (req, res) => {
     const fields = await prisma.clientCustomField.findMany({ orderBy: { sortOrder: 'asc' } });
     res.json(fields);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -128,7 +129,7 @@ router.post('/custom-fields', authenticate, authorize('settings.manage'), async 
     const field = await prisma.clientCustomField.create({ data: req.body });
     res.status(201).json(field);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -142,7 +143,7 @@ router.get('/:id/interactions', authenticate, async (req, res) => {
     });
     res.json(interactions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 
@@ -153,7 +154,7 @@ router.post('/:id/interactions', authenticate, async (req, res) => {
     });
     res.status(201).json(interaction);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'clients');
   }
 });
 

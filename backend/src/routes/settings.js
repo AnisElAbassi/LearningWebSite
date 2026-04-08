@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, authorize, logActivity } = require('../middleware/auth');
 
@@ -15,7 +16,7 @@ router.get('/', authenticate, async (req, res) => {
     }
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'settings');
   }
 });
 
@@ -35,7 +36,7 @@ router.put('/', authenticate, authorize('settings.manage'), async (req, res) => 
     await logActivity(req.user.id, 'updated', 'settings', null, updates, req.ip);
     res.json({ message: 'Settings updated' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'settings');
   }
 });
 
@@ -45,7 +46,7 @@ router.get('/blackout-dates', authenticate, async (req, res) => {
     const config = await prisma.systemConfig.findUnique({ where: { key: 'blackout_dates' } });
     res.json(config ? JSON.parse(config.value) : []);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'settings');
   }
 });
 
@@ -59,7 +60,7 @@ router.put('/blackout-dates', authenticate, authorize('settings.manage'), async 
     });
     res.json({ message: 'Blackout dates updated' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'settings');
   }
 });
 

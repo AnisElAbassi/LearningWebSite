@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { prisma, authenticate, logActivity } = require('../middleware/auth');
+const handleError = require('../utils/handleError');
 
 // File upload config
 const storage = multer.diskStorage({
@@ -32,7 +34,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
     });
     res.json(photos);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'photos');
   }
 });
 
@@ -52,17 +54,26 @@ router.post('/event/:eventId', authenticate, upload.single('photo'), async (req,
     await logActivity(req.user.id, 'uploaded', 'event_photo', photo.id, { eventId: req.params.eventId }, req.ip);
     res.status(201).json(photo);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'photos');
   }
 });
 
 // DELETE /api/photos/:id
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    await prisma.eventPhoto.delete({ where: { id: parseInt(req.params.id) } });
+    const photo = await prisma.eventPhoto.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+    // Remove file from disk
+    if (photo.url) {
+      const filePath = path.join(__dirname, '../../', photo.url);
+      fs.unlink(filePath, () => {}); // best-effort, don't fail if file missing
+    }
+
+    await prisma.eventPhoto.delete({ where: { id: photo.id } });
     res.json({ message: 'Photo deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'photos.delete');
   }
 });
 

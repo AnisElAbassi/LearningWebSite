@@ -1,4 +1,5 @@
 const express = require('express');
+const handleError = require('../utils/handleError');
 const router = express.Router();
 const { prisma, authenticate, logActivity } = require('../middleware/auth');
 const { getSurveyPageHTML } = require('../services/emailService');
@@ -47,7 +48,7 @@ router.post('/event/:eventId', async (req, res) => {
 
     res.status(201).json(feedback);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'feedback');
   }
 });
 
@@ -60,7 +61,7 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
     });
     res.json(feedback);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'feedback');
   }
 });
 
@@ -75,7 +76,7 @@ router.get('/client/:clientId', authenticate, async (req, res) => {
     });
     res.json(feedback);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleError(res, err, 'feedback');
   }
 });
 
