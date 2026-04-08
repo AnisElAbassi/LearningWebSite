@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { HiOutlinePlus, HiOutlineCurrencyDollar } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineCurrencyDollar, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -113,7 +113,7 @@ export default function DealsPage() {
       ) : (
         <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
-            <thead><tr><th>Deal</th><th>Client</th><th>Stage</th><th>Value</th><th>Created</th></tr></thead>
+            <thead><tr><th>Deal</th><th>Client</th><th>Stage</th><th>Value</th><th>Created</th><th></th></tr></thead>
             <tbody>
               {pipeline.flatMap(s => s.deals).map(deal => (
                 <tr key={deal.id}>
@@ -122,6 +122,11 @@ export default function DealsPage() {
                   <td><StatusBadge status={deal.stage} color={stageColors[deal.stage]} /></td>
                   <td className="text-pg-purple font-mono">€{(deal.price || 0).toLocaleString()}</td>
                   <td className="text-xs text-gray-500">{new Date(deal.createdAt).toLocaleDateString()}</td>
+                  <td><button onClick={async () => {
+                    if (!window.confirm(`Delete deal "${deal.title}"?`)) return;
+                    try { await api.delete(`/deals/${deal.id}`); toast.success('Deal deleted'); fetchPipeline(); }
+                    catch { toast.error('Failed to delete'); }
+                  }} className="text-gray-500 hover:text-neon-red"><HiOutlineTrash className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>

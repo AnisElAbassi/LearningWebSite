@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HiOutlineCog, HiOutlineTag, HiOutlineCube, HiOutlineCalendar, HiOutlineDownload, HiOutlineTranslate, HiOutlineMail, HiOutlineUsers, HiOutlinePlus, HiOutlineShieldCheck, HiOutlinePencil } from 'react-icons/hi';
+import { HiOutlineCog, HiOutlineTag, HiOutlineCube, HiOutlineCalendar, HiOutlineDownload, HiOutlineTranslate, HiOutlineMail, HiOutlineUsers, HiOutlinePlus, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -480,7 +480,16 @@ function TeamTab() {
                   <td><span className="status-badge" style={{ backgroundColor: '#7b2ff715', color: '#7b2ff7', border: '1px solid #7b2ff740' }}>{user.role?.name || 'unknown'}</span></td>
                   <td><span className={`status-badge ${user.isActive ? 'text-neon-green' : 'text-neon-red'}`} style={{ backgroundColor: user.isActive ? '#10b98115' : '#ef444415', border: `1px solid ${user.isActive ? '#10b98140' : '#ef444440'}` }}>{user.isActive ? 'active' : 'inactive'}</span></td>
                   <td className="text-pg-purple">{user.staffRates?.[0] ? `€${user.staffRates[0].hourlyRate}/h` : '—'}</td>
-                  <td><button onClick={() => { setEditUser(user); setShowUserModal(true); }} className="text-gray-400 hover:text-pg-purple"><HiOutlinePencil className="w-4 h-4" /></button></td>
+                  <td>
+                    <div className="flex gap-1">
+                      <button onClick={() => { setEditUser(user); setShowUserModal(true); }} className="text-gray-400 hover:text-pg-purple"><HiOutlinePencil className="w-4 h-4" /></button>
+                      <button onClick={async () => {
+                        if (!window.confirm(`Delete user "${user.name}"?`)) return;
+                        try { await api.delete(`/users/${user.id}`); toast.success('User deleted'); fetchAll(); }
+                        catch { toast.error('Failed to delete user'); }
+                      }} className="text-gray-400 hover:text-neon-red"><HiOutlineTrash className="w-4 h-4" /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

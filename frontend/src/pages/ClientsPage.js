@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlineMail, HiOutlinePhone } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlineMail, HiOutlinePhone, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -65,6 +65,14 @@ export default function ClientsPage() {
                 <span className="text-[10px] text-gray-500">{client.events?.length || 0} events</span>
                 <span className="text-[10px] text-gray-500">{client.deals?.length || 0} deals</span>
                 {client.industry && <span className="text-[10px] px-2 py-0.5 bg-pg-purple/10 text-pg-purple rounded-full">{client.industry}</span>}
+                <button onClick={async (e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  if (!window.confirm(`Delete client "${client.companyName}"?`)) return;
+                  try { await api.delete(`/clients/${client.id}`); toast.success('Client deleted'); fetchClients(); }
+                  catch { toast.error('Failed — client may have linked events or deals'); }
+                }} className="ml-auto text-gray-600 hover:text-neon-red transition-colors" title="Delete client">
+                  <HiOutlineTrash className="w-3.5 h-3.5" />
+                </button>
               </div>
             </Link>
           </motion.div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlineCube, HiOutlineFilter, HiOutlinePrinter, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlineCube, HiOutlineFilter, HiOutlinePrinter, HiOutlineRefresh, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -129,7 +129,7 @@ function InventoryTab() {
       <div className="glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead>
-            <tr><th>Name</th><th>Type</th><th>Serial / Qty</th><th>Status</th><th>Location</th><th>Daily Rate</th><th>Last Maintenance</th></tr>
+            <tr><th>Name</th><th>Type</th><th>Serial / Qty</th><th>Status</th><th>Location</th><th>Daily Rate</th><th>Last Maintenance</th><th></th></tr>
           </thead>
           <tbody>
             {items.map(item => (
@@ -141,6 +141,11 @@ function InventoryTab() {
                 <td className="text-gray-400">{item.location || '—'}</td>
                 <td className="text-pg-purple">€{item.dailyRate || item.type.dailyCost || 0}</td>
                 <td className="text-gray-500 text-xs">{item.lastMaintenanceAt ? new Date(item.lastMaintenanceAt).toLocaleDateString() : 'Never'}</td>
+                <td><button onClick={(e) => {
+                  e.stopPropagation();
+                  if (!window.confirm(`Delete "${item.name}"?`)) return;
+                  api.delete(`/hardware/${item.id}`).then(() => { toast.success('Item deleted'); fetchAll(); }).catch(() => toast.error('Failed — item may be in use'));
+                }} className="text-gray-500 hover:text-neon-red"><HiOutlineTrash className="w-4 h-4" /></button></td>
               </tr>
             ))}
           </tbody>

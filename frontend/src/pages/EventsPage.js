@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { HiOutlinePlus, HiOutlineCalendar, HiOutlineExclamation, HiOutlinePencil } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineCalendar, HiOutlineExclamation, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -84,13 +84,26 @@ export default function EventsPage() {
                 <td className="text-sm text-gray-400">{event.participants || '—'}</td>
                 <td><StatusBadge status={event.status} color={statusColors[event.status]} pulse={event.status === 'in_progress'} /></td>
                 <td>
-                  <button
-                    onClick={() => openEdit(event)}
-                    className="p-1.5 text-gray-400 hover:text-pg-purple rounded-lg hover:bg-pg-dark2 transition-all"
-                    title="Edit event"
-                  >
-                    <HiOutlinePencil className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => openEdit(event)}
+                      className="p-1.5 text-gray-400 hover:text-pg-purple rounded-lg hover:bg-pg-dark2 transition-all"
+                      title="Edit event"
+                    >
+                      <HiOutlinePencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(`Delete event for ${event.client?.companyName}?`)) return;
+                        try { await api.delete(`/events/${event.id}`); toast.success('Event deleted'); fetchEvents(); }
+                        catch { toast.error('Failed to delete'); }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-neon-red rounded-lg hover:bg-pg-dark2 transition-all"
+                      title="Delete event"
+                    >
+                      <HiOutlineTrash className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </motion.tr>
             ))}

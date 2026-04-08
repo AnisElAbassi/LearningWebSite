@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineClock, HiOutlineUserGroup, HiOutlineTag } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineClock, HiOutlineUserGroup, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -63,7 +63,15 @@ export default function ExperiencesPage() {
                   <h3 className="font-inter font-bold text-lg text-white">{exp.name}</h3>
                   <StatusBadge status={exp.status} color={statusColors[exp.status]} />
                 </div>
-                <HiOutlinePencil className="w-4 h-4 text-gray-500 hover:text-pg-purple" />
+                <div className="flex gap-1">
+                  <HiOutlinePencil className="w-4 h-4 text-gray-500 hover:text-pg-purple" />
+                  <button onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!window.confirm(`Delete experience "${exp.name}"?`)) return;
+                    try { await api.delete(`/experiences/${exp.id}`); toast.success('Experience deleted'); fetch(); }
+                    catch { toast.error('Failed — experience may have linked events'); }
+                  }}><HiOutlineTrash className="w-4 h-4 text-gray-500 hover:text-neon-red" /></button>
+                </div>
               </div>
               {exp.description && <p className="text-sm text-gray-400 mt-2 line-clamp-2">{exp.description}</p>}
               <div className="flex flex-wrap gap-1.5 mt-3">

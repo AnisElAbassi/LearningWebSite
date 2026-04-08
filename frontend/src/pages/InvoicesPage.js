@@ -114,6 +114,7 @@ export default function InvoicesPage() {
               <th>{t('total')}</th>
               <th>{t('paid')}</th>
               <th>{t('outstanding')}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -137,6 +138,14 @@ export default function InvoicesPage() {
                 <td className="text-neon-green font-mono text-sm">{formatMoney(inv.paidAmount || 0)}</td>
                 <td className="font-mono text-sm" style={{ color: (inv.total - (inv.paidAmount || 0)) > 0 ? '#ef4444' : '#22c55e' }}>
                   {formatMoney((inv.total || 0) - (inv.paidAmount || 0))}
+                </td>
+                <td>
+                  <button onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!window.confirm(`Delete invoice ${inv.invoiceNumber}?`)) return;
+                    try { await api.delete(`/invoices/${inv.id}`); toast.success('Invoice deleted'); fetchData(); }
+                    catch { toast.error('Failed — invoice may have payments'); }
+                  }} className="text-gray-500 hover:text-neon-red"><HiOutlineTrash className="w-4 h-4" /></button>
                 </td>
               </motion.tr>
             ))}
