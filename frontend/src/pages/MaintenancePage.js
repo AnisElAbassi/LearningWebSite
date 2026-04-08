@@ -95,7 +95,7 @@ export default function MaintenancePage() {
           </div>
         </>
       ) : (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>Item</th><th>Type</th><th>Location</th><th>Last Maintenance</th><th>Days Since</th></tr></thead>
             <tbody>

@@ -41,7 +41,7 @@ export default function ActivityLogPage() {
         ))}
       </div>
 
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <div className="space-y-0">
           {logs.map((log, i) => (
             <motion.div

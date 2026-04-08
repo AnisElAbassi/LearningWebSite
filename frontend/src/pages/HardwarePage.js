@@ -126,7 +126,7 @@ function InventoryTab() {
       </div>
 
       {/* Items Table */}
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead>
             <tr><th>Name</th><th>Type</th><th>Serial / Qty</th><th>Status</th><th>Location</th><th>Daily Rate</th><th>Last Maintenance</th></tr>
@@ -199,7 +199,7 @@ function LifecycleTab({ formatMoney, t }) {
         </div>
       )}
 
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead><tr><th>{t('name')}</th><th>Type</th><th>{t('purchase_price')}</th><th>{t('book_value')}</th><th>{t('use_count')}</th><th>{t('lifespan')}</th></tr></thead>
           <tbody>

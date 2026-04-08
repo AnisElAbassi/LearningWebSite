@@ -102,7 +102,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Table */}
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead>
             <tr>

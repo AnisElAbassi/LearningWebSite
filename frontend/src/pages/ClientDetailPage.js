@@ -135,7 +135,7 @@ export default function ClientDetailPage() {
 
       {/* Tab: Events */}
       {tab === 'events' && (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>Date</th><th>Experience</th><th>Participants</th><th>Status</th><th>Revenue</th></tr></thead>
             <tbody>
@@ -175,7 +175,7 @@ export default function ClientDetailPage() {
 
       {/* Tab: Invoices */}
       {tab === 'invoices' && (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>Invoice #</th><th>Status</th><th>Date</th><th>Total</th><th>Paid</th><th>Outstanding</th></tr></thead>
             <tbody>
@@ -197,7 +197,7 @@ export default function ClientDetailPage() {
 
       {/* Tab: Costs */}
       {tab === 'costs' && (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>Event</th><th>Date</th><th>Experience</th><th>Personnel</th><th>Logistics</th><th>Total</th><th>Revenue</th><th>Margin</th></tr></thead>
             <tbody>

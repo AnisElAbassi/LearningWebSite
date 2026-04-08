@@ -214,7 +214,7 @@ function EventCostsTab({ t, formatMoney }) {
       </div>
 
       {/* Desktop */}
-      <div className="hidden md:block glass-card rounded-xl overflow-hidden">
+      <div className="hidden md:block glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead><tr><th>Date</th><th>{t('client')}</th><th>Experience</th><th>Personnel</th><th>{t('logistics')}</th><th>{t('total_cost')}</th><th>{t('revenue')}</th><th>{t('margin')}</th></tr></thead>
           <tbody>
@@ -326,7 +326,7 @@ function LogisticsTab({ t, formatMoney }) {
       </div>
 
       {/* Line Items Table */}
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead><tr><th>{t('event') || 'Event'}</th><th>{t('category') || 'Category'}</th><th>{t('description') || 'Description'}</th><th>{t('amount') || 'Amount'}</th><th>{t('date') || 'Date'}</th><th>{t('actions') || 'Actions'}</th></tr></thead>
           <tbody>

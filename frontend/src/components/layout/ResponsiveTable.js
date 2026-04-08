@@ -13,7 +13,7 @@ export default function ResponsiveTable({ columns, rows, onRowClick, keyField = 
   return (
     <>
       {/* Desktop table */}
-      <div className="hidden md:block glass-card rounded-xl overflow-hidden">
+      <div className="hidden md:block glass-card rounded-xl overflow-x-auto">
         <table className="table-dark">
           <thead>
             <tr>

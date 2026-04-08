@@ -47,7 +47,7 @@ export default function UsersPage() {
       </div>
 
       {tab === 'users' ? (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Hourly Rate</th><th>Actions</th></tr></thead>
             <tbody>

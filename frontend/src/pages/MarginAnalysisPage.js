@@ -88,7 +88,7 @@ export default function MarginAnalysisPage() {
         )}
 
         {/* Experience Table */}
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead>
               <tr>
@@ -131,7 +131,7 @@ export default function MarginAnalysisPage() {
           {t('byClient') || 'By Client'}
         </h2>
 
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead>
               <tr>

@@ -189,7 +189,7 @@ export default function ReportsPage() {
             <div className="h-72"><Line data={revenueLineData} options={chartOpts} /></div>
           </div>
           {/* Monthly breakdown table */}
-          <div className="glass-card rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-x-auto">
             <table className="table-dark">
               <thead><tr><th>Month</th><th>Revenue</th><th>Cost</th><th>Profit</th></tr></thead>
               <tbody>
@@ -243,7 +243,7 @@ export default function ReportsPage() {
               <div className="h-52"><Bar data={topClientsData} options={barOpts} /></div>
             </div>
           )}
-          <div className="glass-card rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-x-auto">
             <table className="table-dark">
               <thead><tr><th>Client</th><th>Events</th><th>Revenue</th></tr></thead>
               <tbody>
@@ -304,7 +304,7 @@ export default function ReportsPage() {
               </div>
             </div>
           )}
-          <div className="glass-card rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-x-auto">
             <table className="table-dark">
               <thead><tr><th>Experience</th><th>Revenue</th><th>Cost</th><th>Margin</th><th>Events</th></tr></thead>
               <tbody>
@@ -326,7 +326,7 @@ export default function ReportsPage() {
           <h2 className="font-inter font-bold text-lg text-white flex items-center gap-2">
             <HiOutlineTrendingDown className="w-5 h-5 text-pg-yellow" /> By Client
           </h2>
-          <div className="glass-card rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-x-auto">
             <table className="table-dark">
               <thead><tr><th>Client</th><th>Revenue</th><th>Cost</th><th>Margin</th><th>Events</th></tr></thead>
               <tbody>

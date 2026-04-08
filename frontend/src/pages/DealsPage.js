@@ -111,7 +111,7 @@ export default function DealsPage() {
           </div>
         </div>
       ) : (
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="table-dark">
             <thead><tr><th>Deal</th><th>Client</th><th>Stage</th><th>Value</th><th>Created</th></tr></thead>
             <tbody>
