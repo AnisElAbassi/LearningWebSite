@@ -9,6 +9,7 @@ const eventIncludes = {
   experience: true,
   operator: { select: { id: true, name: true, email: true } },
   deal: true,
+  lineItems: true,
   hardware: { include: { item: { include: { type: true } } } },
   staff: { include: { user: { select: { id: true, name: true } } } },
   costs: true,
@@ -62,6 +63,7 @@ router.get('/pipeline', authenticate, async (req, res) => {
         client: { select: { companyName: true } },
         experience: { select: { name: true } },
         deal: { select: { id: true, title: true, price: true } },
+        lineItems: true,
         hardware: true, staff: true, packingItems: true, feedback: true, costs: true,
       },
       orderBy: { updatedAt: 'desc' }
@@ -78,7 +80,7 @@ router.get('/pipeline', authenticate, async (req, res) => {
       col.count++;
       col.events.push({
         id: event.id, client: event.client?.companyName, experience: event.experience?.name,
-        dealTitle: event.deal?.title, dealValue: event.deal?.price,
+        price: event.price || event.deal?.price || 0,
         startTime: event.startTime, endTime: event.endTime,
         completeness, updatedAt: event.updatedAt, stageUpdatedAt: event.stageUpdatedAt,
       });
@@ -145,12 +147,14 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST /api/events
 router.post('/', authenticate, authorize('events.create'), async (req, res) => {
   try {
-    const { hardware, staff, checklist, ...data } = req.body;
+    const { hardware, staff, checklist, lineItems, ...data } = req.body;
     if (data.startTime) data.startTime = new Date(data.startTime);
     if (data.endTime) data.endTime = new Date(data.endTime);
+    if (data.price) data.price = parseFloat(data.price);
+    if (data.discount) data.discount = parseFloat(data.discount);
 
-    // Conflict detection for hardware
-    if (hardware && hardware.length > 0) {
+    // Conflict detection for hardware (only if dates + hardware provided)
+    if (hardware && hardware.length > 0 && data.startTime && data.endTime) {
       const conflicts = await checkHardwareConflicts(hardware.map(h => h.itemId), data.startTime, data.endTime);
       if (conflicts.length > 0) {
         return res.status(409).json({ error: 'Hardware conflict', conflicts });
@@ -158,16 +162,20 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
     }
 
     // Conflict detection for operator
-    if (data.operatorId) {
+    if (data.operatorId && data.startTime && data.endTime) {
       const operatorConflict = await checkStaffConflict(data.operatorId, data.startTime, data.endTime);
       if (operatorConflict) {
         return res.status(409).json({ error: 'Operator has a scheduling conflict', conflict: operatorConflict });
       }
     }
 
+    data.stageUpdatedAt = new Date();
+    data.stageUpdatedBy = req.user.id;
+
     const event = await prisma.event.create({
       data: {
         ...data,
+        lineItems: lineItems ? { create: lineItems } : undefined,
         hardware: hardware ? { create: hardware } : undefined,
         staff: staff ? { create: staff } : undefined,
         checklist: checklist ? { create: checklist } : undefined
@@ -175,7 +183,7 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
       include: eventIncludes
     });
 
-    // Auto-generate checklist if not provided
+    // Auto-generate checklist
     if (!checklist) {
       const autoChecklist = generateChecklist(event);
       if (autoChecklist.length > 0) {
@@ -185,7 +193,7 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
       }
     }
 
-    await logActivity(req.user.id, 'created', 'event', event.id, { clientId: data.clientId }, req.ip);
+    await logActivity(req.user.id, 'created', 'event', event.id, { status: data.status || 'quote' }, req.ip);
 
     const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventIncludes });
     res.status(201).json(full);
@@ -198,12 +206,20 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
 router.put('/:id', authenticate, authorize('events.update'), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { hardware, staff, checklist, ...data } = req.body;
+    const { hardware, staff, checklist, lineItems, ...data } = req.body;
     if (data.startTime) data.startTime = new Date(data.startTime);
     if (data.endTime) data.endTime = new Date(data.endTime);
+    if (data.price !== undefined) data.price = data.price ? parseFloat(data.price) : null;
+    if (data.discount !== undefined) data.discount = data.discount ? parseFloat(data.discount) : 0;
 
     await prisma.event.update({ where: { id }, data });
 
+    if (lineItems) {
+      await prisma.eventLineItem.deleteMany({ where: { eventId: id } });
+      if (lineItems.length > 0) {
+        await prisma.eventLineItem.createMany({ data: lineItems.map(l => ({ ...l, eventId: id })) });
+      }
+    }
     if (hardware) {
       await prisma.eventHardware.deleteMany({ where: { eventId: id } });
       if (hardware.length > 0) {
@@ -254,7 +270,7 @@ router.put('/:id/advance', authenticate, authorize('events.update'), async (req,
     const id = parseInt(req.params.id);
     const event = await prisma.event.findUnique({
       where: { id },
-      include: { hardware: true, staff: true, packingItems: true, feedback: true, costs: true, deal: true }
+      include: { hardware: true, staff: true, packingItems: true, feedback: true, costs: true, lineItems: true }
     });
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
@@ -270,7 +286,9 @@ router.put('/:id/advance', authenticate, authorize('events.update'), async (req,
     // Validation per transition
     switch (event.status) {
       case 'quote':
-        if (!event.dealId) missing.push('Link a deal to this event');
+        if (!event.clientId) missing.push('Select a client');
+        if (!event.experienceId) missing.push('Select an experience');
+        if (!event.price && event.lineItems.length === 0) missing.push('Set a price or add line items');
         break;
       case 'confirmed':
         if (!event.startTime) missing.push('Set event start date/time');
@@ -324,7 +342,12 @@ router.put('/:id/advance', authenticate, authorize('events.update'), async (req,
 
 function getStageCompleteness(event) {
   switch (event.status) {
-    case 'quote': return { done: event.dealId ? 1 : 0, total: 1, items: [{ label: 'Deal linked', done: !!event.dealId }] };
+    case 'quote': {
+      const cl = !!event.clientId;
+      const exp = !!event.experienceId;
+      const pr = !!(event.price || (event.lineItems && event.lineItems.length > 0));
+      return { done: (cl ? 1 : 0) + (exp ? 1 : 0) + (pr ? 1 : 0), total: 3, items: [{ label: 'Client', done: cl }, { label: 'Experience', done: exp }, { label: 'Price', done: pr }] };
+    }
     case 'confirmed': return { done: (event.startTime ? 1 : 0) + (event.endTime ? 1 : 0), total: 2, items: [{ label: 'Start date', done: !!event.startTime }, { label: 'End date', done: !!event.endTime }] };
     case 'planning': {
       const hw = event.hardware.length > 0;

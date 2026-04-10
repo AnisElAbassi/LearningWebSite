@@ -45,8 +45,8 @@ router.post('/calculate/:eventId', authenticate, authorize('costs.manage'), asyn
     }
     const logisticsTotal = transportCost + foodCost + hotelCost + otherLogistics;
 
-    // 4. Revenue from deal
-    const revenue = event.deal ? (event.deal.price || 0) - (event.deal.discount || 0) : 0;
+    // 4. Revenue — from event price or deal price
+    const revenue = (event.price || event.deal?.price || 0) - (event.discount || event.deal?.discount || 0);
 
     // 5. Totals
     const totalCost = experienceCost + personnelCost + logisticsTotal;

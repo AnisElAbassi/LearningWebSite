@@ -16,7 +16,6 @@ const navSections = [
     id: 'workflow', items: [
       { path: '/', icon: HiOutlineViewBoards, label: 'pipeline', exact: true, perm: 'pipeline.view' },
       { path: '/calendar', icon: HiOutlineCalendar, label: 'calendar', perm: 'events.view' },
-      { path: '/deals', icon: HiOutlineCurrencyDollar, label: 'deals', perm: 'deals.view' },
     ]
   },
   {

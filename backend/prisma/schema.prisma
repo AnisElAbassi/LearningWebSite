@@ -312,7 +312,7 @@ model Event {
   id             Int               @id @default(autoincrement())
   clientId       Int
   dealId         Int?
-  experienceId   Int
+  experienceId   Int?
   operatorId     Int?
   startTime      DateTime?
   endTime        DateTime?
@@ -321,6 +321,8 @@ model Event {
   notes          String?
   bufferMinutes  Int               @default(15)
   venueAddress   String?           // where the event takes place (client site)
+  price          Float?            // quoted price
+  discount       Float?            @default(0)
   confirmedAt    DateTime?
   closedAt       DateTime?
   stageUpdatedAt DateTime?
@@ -330,8 +332,9 @@ model Event {
 
   client        Client            @relation(fields: [clientId], references: [id])
   deal          Deal?             @relation(fields: [dealId], references: [id])
-  experience    Experience        @relation(fields: [experienceId], references: [id])
+  experience    Experience?       @relation(fields: [experienceId], references: [id])
   operator      User?             @relation("EventOperator", fields: [operatorId], references: [id])
+  lineItems     EventLineItem[]
   hardware      EventHardware[]
   staff         EventStaff[]
   costs         EventCost?
@@ -343,6 +346,16 @@ model Event {
   feedback      EventFeedback[]
   packingItems  EventPackingItem[]
   damageReports DamageReport[]
+}
+
+model EventLineItem {
+  id          Int    @id @default(autoincrement())
+  eventId     Int
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int    @default(1)
+  unitPrice   Float
+  total       Float
 }
 
 model EventHardware {

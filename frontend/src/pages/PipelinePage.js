@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiOutlineCalendar, HiOutlineCurrencyDollar, HiOutlineTrendingUp, HiOutlineExclamation, HiOutlinePlus } from 'react-icons/hi';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 import PipelineBoard from '../components/pipeline/PipelineBoard';
 import { useI18n } from '../hooks/useI18n';
 
 export default function PipelinePage() {
   const { t, formatMoney } = useI18n();
+  const navigate = useNavigate();
   const [pipeline, setPipeline] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,15 @@ export default function PipelinePage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const createEvent = async () => {
+    try {
+      const res = await api.post('/events', { status: 'quote' });
+      navigate(`/events/${res.data.id}`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create event');
+    }
+  };
+
   const d = dashboard || {};
   const activeCount = pipeline.filter(s => !['closed', 'cancelled'].includes(s.stage)).reduce((sum, s) => sum + s.count, 0);
   const margin = d.currentMargin || 0;
@@ -37,9 +49,9 @@ export default function PipelinePage() {
           <h1 className="font-inter font-bold text-2xl pg-text-gradient">{t('pipeline') || 'Pipeline'}</h1>
           <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Link to="/deals" className="btn-pg-primary flex items-center gap-2 text-sm">
-          <HiOutlinePlus className="w-4 h-4" /> {t('new_deal')}
-        </Link>
+        <button onClick={createEvent} className="btn-pg-primary flex items-center gap-2 text-sm">
+          <HiOutlinePlus className="w-4 h-4" /> {t('new_event')}
+        </button>
       </div>
 
       {/* KPI Cards */}

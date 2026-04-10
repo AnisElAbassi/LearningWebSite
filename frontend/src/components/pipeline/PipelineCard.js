@@ -29,8 +29,8 @@ export default function PipelineCard({ event, color, index }) {
           </p>
         )}
 
-        {event.dealValue > 0 && (
-          <p className="text-xs text-pg-purple font-mono mt-1">€{event.dealValue.toLocaleString()}</p>
+        {event.price > 0 && (
+          <p className="text-xs text-pg-purple font-mono mt-1">€{event.price.toLocaleString()}</p>
         )}
 
         {/* Progress bar */}

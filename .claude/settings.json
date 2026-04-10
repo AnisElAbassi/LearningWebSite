@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ':*)",
+      "Bash(DATABASE_URL=\"postgresql://pixelgate_db_user:TKrV7hmRGwQ5JwiQGfVzLkHewyBPgcp4@dpg-d7agknp4tr6s73eb3g0g-a.frankfurt-postgres.render.com/pixelgate_db\" npx prisma db push --force-reset --accept-data-loss)",
+      "Bash(DATABASE_URL=\"postgresql://pixelgate_db_user:TKrV7hmRGwQ5JwiQGfVzLkHewyBPgcp4@dpg-d7agknp4tr6s73eb3g0g-a.frankfurt-postgres.render.com/pixelgate_db\" node prisma/cleanDb.js)",
+      "Bash(node -e ':*)"
+    ]
+  }
+}
