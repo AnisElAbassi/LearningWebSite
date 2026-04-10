@@ -87,7 +87,7 @@ router.get('/monthly', authenticate, authorize('reports.view'), async (req, res)
 
     res.json({
       period: { year: y, month: m, label: new Date(y, m - 1).toLocaleString('default', { month: 'long', year: 'numeric' }) },
-      events: { total: events.length, completed: events.filter(e => e.status === 'completed').length },
+      events: { total: events.length, completed: events.filter(e => e.status === 'closed').length },
       financial: { totalRevenue, totalCost, netMargin: totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue * 100) : 0, experienceCost, personnelCost, logisticsTotal, logisticsBreakdown },
       invoices: { total: invoices.length, paid: invoicesPaid, outstanding: invoicesOutstanding },
       topClients,
@@ -164,7 +164,7 @@ router.get('/client/:clientId', authenticate, async (req, res) => {
       client,
       stats: {
         totalEvents: events.length,
-        completedEvents: events.filter(e => e.status === 'completed').length,
+        completedEvents: events.filter(e => e.status === 'closed').length,
         totalRevenue,
         totalCost,
         avgMargin: totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue * 100) : 0,

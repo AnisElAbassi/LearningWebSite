@@ -4,32 +4,25 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleSidebar } from '../../store/uiSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  HiOutlineHome, HiOutlineCalendar, HiOutlineClipboardList, HiOutlineUserGroup,
+  HiOutlineViewBoards, HiOutlineCalendar, HiOutlineUserGroup,
   HiOutlineCube, HiOutlineDesktopComputer, HiOutlineCurrencyDollar, HiOutlineCog,
   HiOutlineChartBar, HiOutlineDocumentText,
-  HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineAdjustments,
-  HiOutlineDocumentDuplicate
+  HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineAdjustments
 } from 'react-icons/hi';
 import { useI18n } from '../../hooks/useI18n';
 
 const navSections = [
   {
-    id: 'operations', items: [
-      { path: '/', icon: HiOutlineHome, label: 'dashboard', exact: true, perm: null },
+    id: 'workflow', items: [
+      { path: '/', icon: HiOutlineViewBoards, label: 'pipeline', exact: true, perm: 'pipeline.view' },
       { path: '/calendar', icon: HiOutlineCalendar, label: 'calendar', perm: 'events.view' },
-      { path: '/events', icon: HiOutlineClipboardList, label: 'events', perm: 'events.view' },
-      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences', perm: 'experiences.view' },
-    ]
-  },
-  {
-    id: 'business', items: [
-      { path: '/clients', icon: HiOutlineUserGroup, label: 'clients', perm: 'clients.view' },
       { path: '/deals', icon: HiOutlineCurrencyDollar, label: 'deals', perm: 'deals.view' },
-      { path: '/invoices', icon: HiOutlineDocumentDuplicate, label: 'invoices', perm: 'invoices.view' },
     ]
   },
   {
-    id: 'assets', items: [
+    id: 'catalog', items: [
+      { path: '/clients', icon: HiOutlineUserGroup, label: 'clients', perm: 'clients.view' },
+      { path: '/experiences', icon: HiOutlineDesktopComputer, label: 'experiences', perm: 'experiences.view' },
       { path: '/hardware', icon: HiOutlineCube, label: 'hardware', perm: 'hardware.view' },
       { path: '/maintenance', icon: HiOutlineAdjustments, label: 'maintenance', perm: 'hardware.view' },
     ]

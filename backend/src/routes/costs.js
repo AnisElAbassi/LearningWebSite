@@ -87,7 +87,7 @@ router.post('/calculate/:eventId', authenticate, authorize('costs.manage'), asyn
       }
 
       // If event is completed, increment hardware use counts and create depreciation logs
-      if (event.status === 'completed') {
+      if (event.status === 'review' || event.status === 'closed') {
         for (const eh of event.hardware) {
           const item = eh.item;
           const expectedUses = item.expectedLifespanUses || item.type.expectedUses || 0;

@@ -270,5 +270,8 @@
   "sort_by_margin": "Trier par Marge",
   "sort_by_revenue": "Trier par Revenu",
   "mark_as_sent": "Marquer Envoyée",
-  "mark_as_paid": "Marquer Payée"
+  "mark_as_paid": "Marquer Payée",
+
+  "pipeline": "Pipeline",
+  "move_to_next": "Passer à l'Étape Suivante"
 }

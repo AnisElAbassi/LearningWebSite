@@ -50,6 +50,84 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/events/pipeline — must be before /:id
+router.get('/pipeline', authenticate, async (req, res) => {
+  try {
+    const stages = ['quote', 'confirmed', 'planning', 'prep', 'active', 'review', 'closed'];
+    const stageColors = { quote: '#6b7280', confirmed: '#3b82f6', planning: '#a855f7', prep: '#f59e0b', active: '#fbbf24', review: '#f97316', closed: '#10b981' };
+
+    const events = await prisma.event.findMany({
+      where: { status: { not: 'cancelled' } },
+      include: {
+        client: { select: { companyName: true } },
+        experience: { select: { name: true } },
+        deal: { select: { id: true, title: true, price: true } },
+        hardware: true, staff: true, packingItems: true, feedback: true, costs: true,
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    const pipeline = stages.map(stage => ({
+      stage, label: stage.charAt(0).toUpperCase() + stage.slice(1), color: stageColors[stage], count: 0, events: []
+    }));
+
+    for (const event of events) {
+      const col = pipeline.find(p => p.stage === event.status);
+      if (!col) continue;
+      const completeness = getStageCompleteness(event);
+      col.count++;
+      col.events.push({
+        id: event.id, client: event.client?.companyName, experience: event.experience?.name,
+        dealTitle: event.deal?.title, dealValue: event.deal?.price,
+        startTime: event.startTime, endTime: event.endTime,
+        completeness, updatedAt: event.updatedAt, stageUpdatedAt: event.stageUpdatedAt,
+      });
+    }
+
+    res.json(pipeline);
+  } catch (err) {
+    handleError(res, err, 'events.pipeline');
+  }
+});
+
+// POST /api/events/from-deal/:dealId — must be before /:id
+router.post('/from-deal/:dealId', authenticate, authorize('events.create'), async (req, res) => {
+  try {
+    const dealId = parseInt(req.params.dealId);
+    const deal = await prisma.deal.findUnique({ where: { id: dealId }, include: { client: true, lineItems: true } });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    let experienceId = req.body.experienceId;
+    if (!experienceId) {
+      const firstExp = await prisma.experience.findFirst({ where: { status: 'active' } });
+      if (firstExp) experienceId = firstExp.id;
+      else return res.status(400).json({ error: 'No active experiences available' });
+    }
+
+    const event = await prisma.event.create({
+      data: {
+        clientId: deal.clientId, dealId: deal.id, experienceId,
+        status: 'planning', stageUpdatedAt: new Date(), stageUpdatedBy: req.user.id,
+        notes: `Created from deal: ${deal.title}`,
+      },
+      include: eventIncludes
+    });
+
+    await prisma.deal.update({ where: { id: dealId }, data: { stage: 'completed', closedAt: new Date() } });
+
+    const autoChecklist = generateChecklist(event);
+    if (autoChecklist.length > 0) {
+      await prisma.eventChecklist.createMany({ data: autoChecklist.map((task, i) => ({ eventId: event.id, task, sortOrder: i })) });
+    }
+
+    await logActivity(req.user.id, 'created', 'event', event.id, { fromDeal: dealId }, req.ip);
+    const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventIncludes });
+    res.status(201).json(full);
+  } catch (err) {
+    handleError(res, err, 'events.fromDeal');
+  }
+});
+
 // GET /api/events/:id
 router.get('/:id', authenticate, async (req, res) => {
   try {
@@ -68,8 +146,8 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, authorize('events.create'), async (req, res) => {
   try {
     const { hardware, staff, checklist, ...data } = req.body;
-    data.startTime = new Date(data.startTime);
-    data.endTime = new Date(data.endTime);
+    if (data.startTime) data.startTime = new Date(data.startTime);
+    if (data.endTime) data.endTime = new Date(data.endTime);
 
     // Conflict detection for hardware
     if (hardware && hardware.length > 0) {
@@ -147,16 +225,20 @@ router.put('/:id', authenticate, authorize('events.update'), async (req, res) =>
   }
 });
 
-// PUT /api/events/:id/status
+// PUT /api/events/:id/status — manual status override
 router.put('/:id/status', authenticate, authorize('events.update'), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
-    const event = await prisma.event.update({ where: { id }, data: { status }, include: eventIncludes });
+    const data = { status, stageUpdatedAt: new Date(), stageUpdatedBy: req.user.id };
+    if (status === 'confirmed') data.confirmedAt = new Date();
+    if (status === 'closed') data.closedAt = new Date();
+
+    const event = await prisma.event.update({ where: { id }, data, include: eventIncludes });
     await logActivity(req.user.id, 'status_changed', 'event', id, { status }, req.ip);
 
-    // Auto-send thank you email when event is completed
-    if (status === 'completed') {
+    // Auto-send thank you email when event reaches review/closed
+    if (status === 'review' || status === 'closed') {
       sendThankYouEmail(id).catch(err => console.error('Thank you email error:', err));
     }
 
@@ -165,6 +247,106 @@ router.put('/:id/status', authenticate, authorize('events.update'), async (req, 
     handleError(res, err, 'events');
   }
 });
+
+// PUT /api/events/:id/advance — workflow stage advancement with validation
+router.put('/:id/advance', authenticate, authorize('events.update'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: { hardware: true, staff: true, packingItems: true, feedback: true, costs: true, deal: true }
+    });
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    const stageOrder = ['quote', 'confirmed', 'planning', 'prep', 'active', 'review', 'closed'];
+    const currentIdx = stageOrder.indexOf(event.status);
+    if (currentIdx === -1 || currentIdx >= stageOrder.length - 1) {
+      return res.status(400).json({ error: 'Cannot advance from this stage', canAdvance: false, missing: [] });
+    }
+
+    const nextStage = stageOrder[currentIdx + 1];
+    const missing = [];
+
+    // Validation per transition
+    switch (event.status) {
+      case 'quote':
+        if (!event.dealId) missing.push('Link a deal to this event');
+        break;
+      case 'confirmed':
+        if (!event.startTime) missing.push('Set event start date/time');
+        if (!event.endTime) missing.push('Set event end date/time');
+        break;
+      case 'planning':
+        if (event.hardware.length === 0) missing.push('Assign at least one hardware item');
+        if (event.staff.length === 0) missing.push('Assign at least one staff member');
+        if (!event.operatorId) missing.push('Assign an operator');
+        break;
+      case 'prep':
+        // Packing check is optional - just a warning
+        const unpackedCount = event.packingItems.filter(p => !p.packed).length;
+        if (unpackedCount > 0) missing.push(`${unpackedCount} packing items not yet packed`);
+        break;
+      case 'active':
+        // No strict requirements to move to review
+        break;
+      case 'review':
+        if (!event.costs) missing.push('Calculate event costs');
+        break;
+    }
+
+    // For prep stage, unpacked items are warnings, not blockers
+    const isBlocked = event.status === 'prep' ? false : missing.length > 0;
+
+    if (isBlocked) {
+      return res.json({ canAdvance: false, missing, currentStage: event.status, nextStage });
+    }
+
+    // Advance the stage
+    const data = { status: nextStage, stageUpdatedAt: new Date(), stageUpdatedBy: req.user.id };
+    if (nextStage === 'confirmed') data.confirmedAt = new Date();
+    if (nextStage === 'closed') data.closedAt = new Date();
+
+    const updated = await prisma.event.update({ where: { id }, data, include: eventIncludes });
+    await logActivity(req.user.id, 'stage_advanced', 'event', id, { from: event.status, to: nextStage }, req.ip);
+
+    // Auto-send thank you email when reaching review
+    if (nextStage === 'review') {
+      sendThankYouEmail(id).catch(err => console.error('Thank you email error:', err));
+    }
+
+    res.json({ canAdvance: true, missing, event: updated });
+  } catch (err) {
+    handleError(res, err, 'events.advance');
+  }
+});
+
+// (pipeline and from-deal routes moved above /:id to avoid route matching issues)
+
+function getStageCompleteness(event) {
+  switch (event.status) {
+    case 'quote': return { done: event.dealId ? 1 : 0, total: 1, items: [{ label: 'Deal linked', done: !!event.dealId }] };
+    case 'confirmed': return { done: (event.startTime ? 1 : 0) + (event.endTime ? 1 : 0), total: 2, items: [{ label: 'Start date', done: !!event.startTime }, { label: 'End date', done: !!event.endTime }] };
+    case 'planning': {
+      const hw = event.hardware.length > 0;
+      const st = event.staff.length > 0;
+      const op = !!event.operatorId;
+      return { done: (hw ? 1 : 0) + (st ? 1 : 0) + (op ? 1 : 0), total: 3, items: [{ label: 'Hardware', done: hw }, { label: 'Staff', done: st }, { label: 'Operator', done: op }] };
+    }
+    case 'prep': {
+      const packed = event.packingItems.filter(p => p.packed).length;
+      const total = event.packingItems.length || 1;
+      return { done: packed, total, items: [{ label: `Packed ${packed}/${event.packingItems.length}`, done: packed === event.packingItems.length }] };
+    }
+    case 'active': return { done: 1, total: 1, items: [{ label: 'Event running', done: true }] };
+    case 'review': {
+      const fb = event.feedback ? 1 : 0;
+      const costs = event.costs ? 1 : 0;
+      return { done: fb + costs, total: 2, items: [{ label: 'Feedback', done: !!event.feedback }, { label: 'Costs calculated', done: !!event.costs }] };
+    }
+    case 'closed': return { done: 1, total: 1, items: [{ label: 'Complete', done: true }] };
+    default: return { done: 0, total: 1, items: [] };
+  }
+}
 
 // PUT /api/events/:id/checklist/:checkId
 router.put('/:id/checklist/:checkId', authenticate, async (req, res) => {
@@ -209,7 +391,7 @@ async function checkHardwareConflicts(itemIds, startTime, endTime, excludeEventI
   const where = {
     itemId: { in: itemIds },
     event: {
-      status: { notIn: ['cancelled', 'completed'] },
+      status: { notIn: ['cancelled', 'closed'] },
       startTime: { lt: endTime },
       endTime: { gt: startTime }
     }
@@ -226,7 +408,7 @@ async function checkHardwareConflicts(itemIds, startTime, endTime, excludeEventI
 async function checkStaffConflict(userId, startTime, endTime, excludeEventId) {
   const where = {
     operatorId: userId,
-    status: { notIn: ['cancelled', 'completed'] },
+    status: { notIn: ['cancelled', 'closed'] },
     startTime: { lt: endTime },
     endTime: { gt: startTime }
   };

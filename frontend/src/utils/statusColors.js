@@ -1,8 +1,11 @@
 export const eventStatusColors = {
-  draft: '#6b7280',
-  confirmed: '#a855f7',
-  in_progress: '#fbbf24',
-  completed: '#10b981',
+  quote: '#6b7280',
+  confirmed: '#3b82f6',
+  planning: '#a855f7',
+  prep: '#f59e0b',
+  active: '#fbbf24',
+  review: '#f97316',
+  closed: '#10b981',
   cancelled: '#ef4444',
 };
 

@@ -40,7 +40,7 @@ router.post('/event/:eventId', async (req, res) => {
     await prisma.client.update({ where: { id: event.clientId }, data: { satisfactionAvg: avg } });
 
     // Update client loyalty tier
-    const eventCount = await prisma.event.count({ where: { clientId: event.clientId, status: 'completed' } });
+    const eventCount = await prisma.event.count({ where: { clientId: event.clientId, status: { in: ['review', 'closed'] } } });
     let loyaltyTier = 'new';
     if (eventCount >= 5) loyaltyTier = 'vip';
     else if (eventCount >= 2) loyaltyTier = 'returning';

@@ -250,5 +250,8 @@
   "feedback_rating": "Feedback & Rating",
   "satisfaction": "Satisfaction",
   "interaction_notes": "Interaction Notes",
-  "loyalty_tier": "Loyalty Tier"
+  "loyalty_tier": "Loyalty Tier",
+
+  "pipeline": "Pipeline",
+  "move_to_next": "Move to Next Stage"
 }

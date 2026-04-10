@@ -19,6 +19,7 @@ async function main() {
     Logistics: ['logistics.view', 'logistics.create', 'logistics.update', 'logistics.delete'],
     Reports: ['reports.view', 'reports.generate'],
     Settings: ['settings.view', 'settings.manage'],
+    Pipeline: ['pipeline.view', 'pipeline.advance'],
     Activity: ['activity.view'],
     Analytics: ['analytics.view']
   };
@@ -72,7 +73,7 @@ async function main() {
 
   // Operations permissions
   const opsPerms = allPermissions.filter(p =>
-    ['events', 'hardware', 'experiences', 'costs', 'logistics', 'assets', 'analytics', 'activity', 'reports'].some(g => p.slug.startsWith(g))
+    ['events', 'hardware', 'experiences', 'costs', 'logistics', 'assets', 'analytics', 'activity', 'reports', 'pipeline'].some(g => p.slug.startsWith(g))
   );
   for (const p of opsPerms) {
     await prisma.rolePermission.upsert({
@@ -85,7 +86,7 @@ async function main() {
   // Sales permissions
   const salesPerms = allPermissions.filter(p =>
     p.slug.startsWith('clients') || p.slug.startsWith('deals') || p.slug.startsWith('invoices') ||
-    ['events.view', 'experiences.view', 'analytics.view', 'reports.view'].includes(p.slug)
+    ['events.view', 'experiences.view', 'analytics.view', 'reports.view', 'pipeline.view'].includes(p.slug)
   );
   for (const p of salesPerms) {
     await prisma.rolePermission.upsert({
@@ -97,7 +98,7 @@ async function main() {
 
   // Technician permissions
   const techPerms = allPermissions.filter(p =>
-    p.slug.startsWith('hardware') || p.slug.startsWith('assets')
+    p.slug.startsWith('hardware') || p.slug.startsWith('assets') || p.slug === 'pipeline.view'
   );
   for (const p of techPerms) {
     await prisma.rolePermission.upsert({
@@ -125,11 +126,14 @@ async function main() {
     {
       slug: 'event_status', label: 'Event Status',
       values: [
-        { value: 'draft', label: 'Draft', color: '#6b7280', sortOrder: 0, isDefault: true },
-        { value: 'confirmed', label: 'Confirmed', color: '#a855f7', sortOrder: 1 },
-        { value: 'in_progress', label: 'In Progress', color: '#fbbf24', sortOrder: 2 },
-        { value: 'completed', label: 'Completed', color: '#22c55e', sortOrder: 3 },
-        { value: 'cancelled', label: 'Cancelled', color: '#ef4444', sortOrder: 4 }
+        { value: 'quote', label: 'Quote', color: '#6b7280', sortOrder: 0, isDefault: true },
+        { value: 'confirmed', label: 'Confirmed', color: '#3b82f6', sortOrder: 1 },
+        { value: 'planning', label: 'Planning', color: '#a855f7', sortOrder: 2 },
+        { value: 'prep', label: 'Prep', color: '#f59e0b', sortOrder: 3 },
+        { value: 'active', label: 'Active', color: '#fbbf24', sortOrder: 4 },
+        { value: 'review', label: 'Review', color: '#f97316', sortOrder: 5 },
+        { value: 'closed', label: 'Closed', color: '#10b981', sortOrder: 6 },
+        { value: 'cancelled', label: 'Cancelled', color: '#ef4444', sortOrder: 7 }
       ]
     },
     {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencil } from 'react-icons/hi';
+import { HiOutlineArrowLeft, HiOutlinePencil, HiOutlinePlus } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -23,6 +23,16 @@ export default function DealDetailPage() {
     fetch();
   };
 
+  const createEvent = async () => {
+    try {
+      const res = await api.post(`/events/from-deal/${id}`);
+      toast.success('Event created!');
+      window.location.href = `/events/${res.data.id}`;
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create event');
+    }
+  };
+
 
   if (!deal) return <div className="animate-pulse"><div className="h-64 bg-pg-card rounded-xl" /></div>;
 
@@ -42,6 +52,19 @@ export default function DealDetailPage() {
           {deal.discount > 0 && <p className="text-xs text-gray-500">Discount: €{deal.discount}</p>}
         </div>
       </div>
+
+      {/* Create Event CTA */}
+      {deal.stage === 'confirmed' && (
+        <div className="glass-card rounded-xl p-5 border border-neon-green/30 bg-neon-green/5 flex items-center justify-between">
+          <div>
+            <p className="font-inter font-bold text-neon-green">Deal Confirmed!</p>
+            <p className="text-sm text-gray-400">Ready to create an event for this client.</p>
+          </div>
+          <button onClick={createEvent} className="btn-pg-primary flex items-center gap-2">
+            <HiOutlinePlus className="w-4 h-4" /> Create Event
+          </button>
+        </div>
+      )}
 
       {/* Stage Pipeline */}
       <div className="glass-card rounded-xl p-5">

@@ -309,20 +309,24 @@ model BundleItem {
 // ─── EVENTS & BOOKING ────────────────────────────────────────────────────────
 
 model Event {
-  id            Int               @id @default(autoincrement())
-  clientId      Int
-  dealId        Int?
-  experienceId  Int
-  operatorId    Int?
-  startTime     DateTime
-  endTime       DateTime
-  status        String            @default("draft")
-  participants  Int?
-  notes         String?
-  bufferMinutes Int               @default(15)
-  venueAddress  String?           // where the event takes place (client site)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id             Int               @id @default(autoincrement())
+  clientId       Int
+  dealId         Int?
+  experienceId   Int
+  operatorId     Int?
+  startTime      DateTime?
+  endTime        DateTime?
+  status         String            @default("quote")
+  participants   Int?
+  notes          String?
+  bufferMinutes  Int               @default(15)
+  venueAddress   String?           // where the event takes place (client site)
+  confirmedAt    DateTime?
+  closedAt       DateTime?
+  stageUpdatedAt DateTime?
+  stageUpdatedBy Int?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   client        Client            @relation(fields: [clientId], references: [id])
   deal          Deal?             @relation(fields: [dealId], references: [id])
