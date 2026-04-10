@@ -17,7 +17,7 @@ export default function PrepStep({ event, onRefresh }) {
   const [costForm, setCostForm] = useState({ category: 'transport', description: '', amount: '' });
 
   useEffect(() => {
-    api.get(`/packing/event/${event.id}`).then(r => setPackingItems(r.data)).catch(() => {});
+    api.get(`/packing/event/${event.id}`).then(r => setPackingItems(r.data?.items || r.data || [])).catch(() => {});
   }, [event.id]);
 
   const togglePacked = async (itemId, packed) => {
@@ -31,7 +31,7 @@ export default function PrepStep({ event, onRefresh }) {
     try {
       await api.post(`/packing/event/${event.id}/regenerate`);
       const r = await api.get(`/packing/event/${event.id}`);
-      setPackingItems(r.data);
+      setPackingItems(r.data?.items || r.data || []);
       toast.success('Packing list regenerated');
     } catch { toast.error('Failed'); }
   };

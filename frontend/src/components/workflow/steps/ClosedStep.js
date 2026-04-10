@@ -53,16 +53,19 @@ export default function ClosedStep({ event }) {
         {/* Feedback */}
         <div className="glass-card rounded-xl p-4">
           <h4 className="font-bold text-sm mb-3">Client Feedback</h4>
-          {event.feedback ? (
-            <div>
-              <div className="flex items-center gap-1 mb-2">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <span key={s} className={`text-lg ${s <= event.feedback.rating ? 'text-pg-yellow' : 'text-gray-600'}`}>★</span>
-                ))}
+          {(() => {
+            const fb = Array.isArray(event.feedback) ? event.feedback[0] : event.feedback;
+            return fb ? (
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <span key={s} className={`text-lg ${s <= fb.rating ? 'text-pg-yellow' : 'text-gray-600'}`}>★</span>
+                  ))}
+                </div>
+                {fb.comment && <p className="text-sm text-gray-300">{fb.comment}</p>}
               </div>
-              {event.feedback.comment && <p className="text-sm text-gray-300">{event.feedback.comment}</p>}
-            </div>
-          ) : <p className="text-gray-500 text-sm">No feedback collected</p>}
+            ) : <p className="text-gray-500 text-sm">No feedback collected</p>;
+          })()}
         </div>
       </div>
     </div>

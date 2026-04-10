@@ -5,8 +5,9 @@ import { useI18n } from '../../../hooks/useI18n';
 
 export default function ReviewStep({ event, onRefresh }) {
   const { formatMoney } = useI18n();
-  const [rating, setRating] = useState(event.feedback?.rating || 0);
-  const [comment, setComment] = useState(event.feedback?.comment || '');
+  const fb = Array.isArray(event.feedback) ? event.feedback[0] : event.feedback;
+  const [rating, setRating] = useState(fb?.rating || 0);
+  const [comment, setComment] = useState(fb?.comment || '');
   const [calculating, setCalculating] = useState(false);
 
   const submitFeedback = async () => {
@@ -37,15 +38,15 @@ export default function ReviewStep({ event, onRefresh }) {
         {/* Feedback */}
         <div className="glass-card rounded-xl p-4">
           <h4 className="font-bold text-sm mb-3">Client Feedback</h4>
-          {event.feedback ? (
+          {fb ? (
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map(s => (
-                  <span key={s} className={`text-lg ${s <= event.feedback.rating ? 'text-pg-yellow' : 'text-gray-600'}`}>★</span>
+                  <span key={s} className={`text-lg ${s <= fb.rating ? 'text-pg-yellow' : 'text-gray-600'}`}>★</span>
                 ))}
-                <span className="text-sm text-gray-400 ml-2">{event.feedback.rating}/5</span>
+                <span className="text-sm text-gray-400 ml-2">{fb.rating}/5</span>
               </div>
-              {event.feedback.comment && <p className="text-sm text-gray-300">{event.feedback.comment}</p>}
+              {fb.comment && <p className="text-sm text-gray-300">{fb.comment}</p>}
             </div>
           ) : (
             <div className="space-y-3">

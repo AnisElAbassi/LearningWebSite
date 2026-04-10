@@ -362,9 +362,9 @@ function getStageCompleteness(event) {
     }
     case 'active': return { done: 1, total: 1, items: [{ label: 'Event running', done: true }] };
     case 'review': {
-      const fb = event.feedback ? 1 : 0;
+      const hasFb = Array.isArray(event.feedback) ? event.feedback.length > 0 : !!event.feedback;
       const costs = event.costs ? 1 : 0;
-      return { done: fb + costs, total: 2, items: [{ label: 'Feedback', done: !!event.feedback }, { label: 'Costs calculated', done: !!event.costs }] };
+      return { done: (hasFb ? 1 : 0) + costs, total: 2, items: [{ label: 'Feedback', done: hasFb }, { label: 'Costs calculated', done: !!event.costs }] };
     }
     case 'closed': return { done: 1, total: 1, items: [{ label: 'Complete', done: true }] };
     default: return { done: 0, total: 1, items: [] };
