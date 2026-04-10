@@ -310,7 +310,7 @@ model BundleItem {
 
 model Event {
   id             Int               @id @default(autoincrement())
-  clientId       Int
+  clientId       Int?
   dealId         Int?
   experienceId   Int?
   operatorId     Int?
@@ -330,7 +330,7 @@ model Event {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  client        Client            @relation(fields: [clientId], references: [id])
+  client        Client?           @relation(fields: [clientId], references: [id])
   deal          Deal?             @relation(fields: [dealId], references: [id])
   experience    Experience?       @relation(fields: [experienceId], references: [id])
   operator      User?             @relation("EventOperator", fields: [operatorId], references: [id])
