@@ -9,6 +9,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "node prisma/seed.js",
     "db:clean": "node prisma/cleanDb.js",
+    "postinstall": "npx prisma generate",
     "db:generate": "npx prisma generate"
   },
   "dependencies": {
