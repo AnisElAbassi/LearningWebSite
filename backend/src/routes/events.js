@@ -117,7 +117,7 @@ router.post('/from-deal/:dealId', authenticate, authorize('events.create'), asyn
 
     await prisma.deal.update({ where: { id: dealId }, data: { stage: 'completed', closedAt: new Date() } });
 
-    const autoChecklist = generateChecklist(event);
+    const autoChecklist = await generateChecklist();
     if (autoChecklist.length > 0) {
       await prisma.eventChecklist.createMany({ data: autoChecklist.map((task, i) => ({ eventId: event.id, task, sortOrder: i })) });
     }
@@ -185,7 +185,7 @@ router.post('/', authenticate, authorize('events.create'), async (req, res) => {
 
     // Auto-generate checklist
     if (!checklist) {
-      const autoChecklist = generateChecklist(event);
+      const autoChecklist = await generateChecklist();
       if (autoChecklist.length > 0) {
         await prisma.eventChecklist.createMany({
           data: autoChecklist.map((task, i) => ({ eventId: event.id, task, sortOrder: i }))
@@ -458,17 +458,13 @@ router.post('/check-conflicts', authenticate, async (req, res) => {
   }
 });
 
-function generateChecklist(event) {
-  return [
-    'Verify hardware bundle is prepared and charged',
-    'Test all VR headsets before session',
-    'Set up play area and safety boundaries',
-    'Load experience on all devices',
-    'Prepare welcome materials for client',
-    'Brief participants on safety procedures',
-    'Run post-session equipment check',
-    'Collect client feedback'
-  ];
+async function generateChecklist() {
+  const config = await prisma.systemConfig.findUnique({ where: { key: 'default_checklist' } });
+  if (config) {
+    try { return JSON.parse(config.value); } catch { }
+  }
+  // Fallback if config not set
+  return ['Test equipment', 'Set up play area', 'Brief participants', 'Post-session check'];
 }
 
 module.exports = router;

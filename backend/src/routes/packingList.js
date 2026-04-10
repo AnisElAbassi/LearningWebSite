@@ -28,13 +28,16 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
           sortOrder: i
         }));
 
-        // Add standard items every event needs
-        packingData.push(
-          { eventId, itemName: 'Extension cords & power strips', itemType: 'General', quantity: 1, sortOrder: packingData.length },
-          { eventId, itemName: 'Cable ties & velcro straps', itemType: 'General', quantity: 1, sortOrder: packingData.length + 1 },
-          { eventId, itemName: 'Cleaning wipes (headset lenses)', itemType: 'General', quantity: 1, sortOrder: packingData.length + 2 },
-          { eventId, itemName: 'Spare batteries', itemType: 'General', quantity: 1, sortOrder: packingData.length + 3 }
-        );
+        // Add default supplies from config
+        const suppliesConfig = await prisma.systemConfig.findUnique({ where: { key: 'default_packing_supplies' } });
+        if (suppliesConfig) {
+          try {
+            const supplies = JSON.parse(suppliesConfig.value);
+            supplies.forEach((name, i) => {
+              packingData.push({ eventId, itemName: name, itemType: 'Supplies', quantity: 1, sortOrder: packingData.length + i });
+            });
+          } catch {}
+        }
 
         await prisma.eventPackingItem.createMany({ data: packingData });
         items = await prisma.eventPackingItem.findMany({ where: { eventId }, orderBy: { sortOrder: 'asc' } });

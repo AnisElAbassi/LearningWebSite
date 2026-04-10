@@ -235,6 +235,22 @@ async function main() {
     { key: 'default_tax_rate', value: '19', type: 'number' },
     { key: 'estimated_uses_per_year', value: '100', type: 'number' },
     { key: 'invoice_prefix', value: 'PG-INV', type: 'string' },
+    { key: 'default_checklist', value: JSON.stringify([
+      'Verify hardware bundle is prepared and charged',
+      'Test all VR headsets before session',
+      'Set up play area and safety boundaries',
+      'Load experience on all devices',
+      'Prepare welcome materials for client',
+      'Brief participants on safety procedures',
+      'Run post-session equipment check',
+      'Collect client feedback'
+    ]), type: 'json' },
+    { key: 'default_packing_supplies', value: JSON.stringify([
+      'Extension cords & power strips',
+      'Cable ties & velcro straps',
+      'Cleaning wipes (headset lenses)',
+      'Spare batteries'
+    ]), type: 'json' },
   ];
 
   for (const d of defaults) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HiOutlineCog, HiOutlineTag, HiOutlineCube, HiOutlineCalendar, HiOutlineDownload, HiOutlineTranslate, HiOutlineMail, HiOutlineUsers, HiOutlinePlus, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlineCog, HiOutlineTag, HiOutlineCube, HiOutlineCalendar, HiOutlineDownload, HiOutlineTranslate, HiOutlineMail, HiOutlineUsers, HiOutlinePlus, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash, HiOutlineClipboardList } from 'react-icons/hi';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -48,6 +48,7 @@ export default function SettingsPage() {
     { id: 'fields', label: t('custom_fields'), icon: HiOutlineCube },
     { id: 'email', label: 'Email', icon: HiOutlineMail },
     { id: 'schedule', label: t('schedule_blackouts'), icon: HiOutlineCalendar },
+    { id: 'templates', label: 'Templates', icon: HiOutlineClipboardList },
     { id: 'export', label: t('data_export'), icon: HiOutlineDownload },
     { id: 'team', label: t('team') || 'Team', icon: HiOutlineUsers },
   ];
@@ -280,6 +281,8 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {tab === 'templates' && <TemplatesTab settings={settings} onSave={saveSetting} />}
+
       {tab === 'team' && <TeamTab />}
     </div>
   );
@@ -417,6 +420,79 @@ function ExternalSurveyLinks({ settings, onSave }) {
         );
       })}
       {experiences.length === 0 && <p className="text-gray-500 text-sm">No experiences found</p>}
+    </div>
+  );
+}
+
+function TemplatesTab({ settings, onSave }) {
+  const parseList = (key) => {
+    try { return JSON.parse(settings[key] || '[]'); } catch { return []; }
+  };
+
+  const [checklist, setChecklist] = useState(parseList('default_checklist'));
+  const [supplies, setSupplies] = useState(parseList('default_packing_supplies'));
+  const [newCheck, setNewCheck] = useState('');
+  const [newSupply, setNewSupply] = useState('');
+
+  useEffect(() => {
+    setChecklist(parseList('default_checklist'));
+    setSupplies(parseList('default_packing_supplies'));
+  }, [settings]);
+
+  const saveChecklist = (items) => { setChecklist(items); onSave('default_checklist', JSON.stringify(items)); };
+  const saveSupplies = (items) => { setSupplies(items); onSave('default_packing_supplies', JSON.stringify(items)); };
+
+  const addCheck = () => { if (newCheck.trim()) { saveChecklist([...checklist, newCheck.trim()]); setNewCheck(''); } };
+  const removeCheck = (i) => saveChecklist(checklist.filter((_, idx) => idx !== i));
+
+  const addSupply = () => { if (newSupply.trim()) { saveSupplies([...supplies, newSupply.trim()]); setNewSupply(''); } };
+  const removeSupply = (i) => saveSupplies(supplies.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Default Checklist */}
+      <div className="glass-card rounded-xl p-5">
+        <h3 className="font-inter font-bold text-lg mb-1">Event Checklist</h3>
+        <p className="text-xs text-gray-500 mb-4">Tasks auto-added to every new event. Your team checks these off during the event.</p>
+        <div className="space-y-1 mb-4">
+          {checklist.map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-pg-dark2/30 text-sm group">
+              <span className="text-gray-300">{item}</span>
+              <button onClick={() => removeCheck(i)} className="text-gray-600 hover:text-neon-red opacity-0 group-hover:opacity-100 transition-opacity">
+                <HiOutlineTrash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {checklist.length === 0 && <p className="text-gray-500 text-xs text-center py-4">No default checklist items</p>}
+        </div>
+        <div className="flex gap-2">
+          <input className="input-dark text-sm flex-1" placeholder="e.g. Test all VR headsets" value={newCheck}
+            onChange={e => setNewCheck(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCheck()} />
+          <button onClick={addCheck} className="btn-pg-outline text-xs"><HiOutlinePlus className="w-4 h-4" /></button>
+        </div>
+      </div>
+
+      {/* Default Packing Supplies */}
+      <div className="glass-card rounded-xl p-5">
+        <h3 className="font-inter font-bold text-lg mb-1">Packing Supplies</h3>
+        <p className="text-xs text-gray-500 mb-4">Non-hardware items auto-added to every packing list (cables, wipes, etc.).</p>
+        <div className="space-y-1 mb-4">
+          {supplies.map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-pg-dark2/30 text-sm group">
+              <span className="text-gray-300">{item}</span>
+              <button onClick={() => removeSupply(i)} className="text-gray-600 hover:text-neon-red opacity-0 group-hover:opacity-100 transition-opacity">
+                <HiOutlineTrash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {supplies.length === 0 && <p className="text-gray-500 text-xs text-center py-4">No default supplies</p>}
+        </div>
+        <div className="flex gap-2">
+          <input className="input-dark text-sm flex-1" placeholder="e.g. Extension cords" value={newSupply}
+            onChange={e => setNewSupply(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSupply()} />
+          <button onClick={addSupply} className="btn-pg-outline text-xs"><HiOutlinePlus className="w-4 h-4" /></button>
+        </div>
+      </div>
     </div>
   );
 }
