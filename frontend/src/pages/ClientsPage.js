@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineMail, HiOutlinePhone, HiOutlineTrash } from 'react-icons/hi';
+import FormLabel from '../components/shared/FormLabel';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import Modal from '../components/layout/Modal';
@@ -116,23 +117,23 @@ function ClientModal({ show, onClose, client, customFields, onSaved }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label-text">Company Name *</label>
+            <FormLabel required hint="The official company or organization name.">Company Name</FormLabel>
             <input className="input-dark" value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} required />
           </div>
           <div>
-            <label className="label-text">Contact Name *</label>
+            <FormLabel required hint="Your main point of contact at this company.">Contact Name</FormLabel>
             <input className="input-dark" value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} required />
           </div>
           <div>
-            <label className="label-text">Email *</label>
+            <FormLabel required hint="Contact email for event coordination and follow-up.">Email</FormLabel>
             <input type="email" className="input-dark" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
           </div>
           <div>
-            <label className="label-text">Phone</label>
+            <FormLabel hint="Phone number for direct contact.">Phone</FormLabel>
             <input className="input-dark" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
           </div>
           <div>
-            <label className="label-text">Industry</label>
+            <FormLabel hint="Business sector (e.g. Tech, Automotive, Finance). Helps with experience recommendations.">Industry</FormLabel>
             <input className="input-dark" value={form.industry} onChange={e => setForm({ ...form, industry: e.target.value })} />
           </div>
           <div>

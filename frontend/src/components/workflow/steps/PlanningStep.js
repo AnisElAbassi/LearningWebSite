@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineTrash } from 'react-icons/hi';
 import api from '../../../utils/api';
 import toast from 'react-hot-toast';
+import FormLabel from '../../shared/FormLabel';
 
 export default function PlanningStep({ event, onRefresh }) {
   const [hardware, setHardware] = useState([]);
@@ -72,7 +73,7 @@ export default function PlanningStep({ event, onRefresh }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Hardware */}
         <div className="glass-card rounded-xl p-4">
-          <h4 className="font-bold text-sm mb-3">Hardware ({event.hardware.length})</h4>
+          <FormLabel hint="VR headsets, controllers, and other equipment needed. Only available items are shown.">Hardware ({event.hardware.length})</FormLabel>
           <div className="space-y-2 mb-3">
             {event.hardware.map(h => (
               <div key={h.id} className="flex items-center justify-between p-2 rounded-lg bg-pg-dark2/30 text-sm">
@@ -94,7 +95,7 @@ export default function PlanningStep({ event, onRefresh }) {
 
         {/* Staff */}
         <div className="glass-card rounded-xl p-4">
-          <h4 className="font-bold text-sm mb-3">Staff ({event.staff.length})</h4>
+          <FormLabel hint="Team members who will work this event. Their rates are used for cost calculation.">Staff ({event.staff.length})</FormLabel>
           <div className="space-y-2 mb-3">
             {event.staff.map(s => (
               <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-pg-dark2/30 text-sm">
@@ -115,7 +116,7 @@ export default function PlanningStep({ event, onRefresh }) {
 
         {/* Operator */}
         <div className="glass-card rounded-xl p-4">
-          <h4 className="font-bold text-sm mb-3">Operator</h4>
+          <FormLabel hint="The person in charge of running the VR experience on-site.">Operator</FormLabel>
           <select className="input-dark mb-3" value={operatorId} onChange={e => setOperatorId(e.target.value)}>
             <option value="">Select operator...</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}

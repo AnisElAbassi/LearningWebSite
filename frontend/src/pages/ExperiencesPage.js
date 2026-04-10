@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineClock, HiOutlineUserGroup, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import FormLabel from '../components/shared/FormLabel';
 import Modal from '../components/layout/Modal';
 import StatusBadge from '../components/layout/StatusBadge';
 
@@ -152,27 +153,27 @@ function ExperienceModal({ show, onClose, experience, tags, hardwareTypes, onSav
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="label-text">Name *</label>
+            <FormLabel required hint="Name of the VR experience (e.g. 'Zombie Apocalypse', 'Space Mission').">Name</FormLabel>
             <input className="input-dark" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
           </div>
           <div className="col-span-2">
-            <label className="label-text">Description</label>
+            <FormLabel hint="Brief description of what participants will experience.">Description</FormLabel>
             <textarea className="input-dark" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </div>
           <div>
-            <label className="label-text">Min Players</label>
+            <FormLabel hint="Minimum number of players needed to run this experience.">Min Players</FormLabel>
             <input type="number" className="input-dark" value={form.minPlayers} onChange={e => setForm({ ...form, minPlayers: parseInt(e.target.value) })} min={1} />
           </div>
           <div>
-            <label className="label-text">Max Players</label>
+            <FormLabel hint="Maximum players that can participate simultaneously.">Max Players</FormLabel>
             <input type="number" className="input-dark" value={form.maxPlayers} onChange={e => setForm({ ...form, maxPlayers: parseInt(e.target.value) })} min={1} />
           </div>
           <div>
-            <label className="label-text">Duration (min)</label>
+            <FormLabel hint="How long the experience takes, not including setup or cleanup.">Duration (min)</FormLabel>
             <input type="number" className="input-dark" value={form.durationMin} onChange={e => setForm({ ...form, durationMin: parseInt(e.target.value) })} min={5} />
           </div>
           <div>
-            <label className="label-text">Buffer Time (min)</label>
+            <FormLabel hint="Time between sessions for equipment reset, cleaning, and next group prep.">Buffer Time (min)</FormLabel>
             <input type="number" className="input-dark" value={form.bufferTimeMin} onChange={e => setForm({ ...form, bufferTimeMin: parseInt(e.target.value) })} min={0} />
           </div>
           <div>

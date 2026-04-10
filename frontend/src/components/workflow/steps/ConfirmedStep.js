@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../../utils/api';
 import toast from 'react-hot-toast';
+import FormLabel from '../../shared/FormLabel';
 
 export default function ConfirmedStep({ event, onRefresh }) {
   const [startTime, setStartTime] = useState(event.startTime ? new Date(event.startTime).toISOString().slice(0, 16) : '');
@@ -32,19 +33,19 @@ export default function ConfirmedStep({ event, onRefresh }) {
       <div className="glass-card rounded-xl p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="label-text">Start Date & Time *</label>
+            <FormLabel required hint="When the event starts. Include travel time if arriving early.">Start Date & Time</FormLabel>
             <input type="datetime-local" className="input-dark" value={startTime} onChange={e => setStartTime(e.target.value)} />
           </div>
           <div>
-            <label className="label-text">End Date & Time *</label>
+            <FormLabel required hint="When the event ends. Include cleanup and pack-up time.">End Date & Time</FormLabel>
             <input type="datetime-local" className="input-dark" value={endTime} onChange={e => setEndTime(e.target.value)} />
           </div>
           <div>
-            <label className="label-text">Venue Address</label>
+            <FormLabel hint="Where you'll set up the VR equipment. The client's office, venue, or event space.">Venue Address</FormLabel>
             <input className="input-dark" value={venueAddress} onChange={e => setVenueAddress(e.target.value)} placeholder="Client site address" />
           </div>
           <div>
-            <label className="label-text">Participants</label>
+            <FormLabel hint="Expected number of people who will participate in the VR experience.">Participants</FormLabel>
             <input type="number" className="input-dark" value={participants} onChange={e => setParticipants(e.target.value)} min={1} />
           </div>
         </div>

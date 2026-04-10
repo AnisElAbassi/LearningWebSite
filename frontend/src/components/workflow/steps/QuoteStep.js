@@ -3,6 +3,7 @@ import { HiOutlinePlus, HiOutlineTrash } from 'react-icons/hi';
 import api from '../../../utils/api';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../hooks/useI18n';
+import FormLabel from '../../shared/FormLabel';
 
 export default function QuoteStep({ event, onRefresh }) {
   const { formatMoney } = useI18n();
@@ -71,14 +72,14 @@ export default function QuoteStep({ event, onRefresh }) {
       <div className="glass-card rounded-xl p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="label-text">Client *</label>
+            <FormLabel required hint="The company you're organizing this event for. Add clients in Setup → Clients.">Client</FormLabel>
             <select className="input-dark" value={clientId} onChange={e => setClientId(e.target.value)}>
               <option value="">Select client...</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
             </select>
           </div>
           <div>
-            <label className="label-text">Experience *</label>
+            <FormLabel required hint="The VR experience to run. Add experiences in Setup → Experiences.">Experience</FormLabel>
             <select className="input-dark" value={experienceId} onChange={e => setExperienceId(e.target.value)}>
               <option value="">Select experience...</option>
               {experiences.filter(e => e.status === 'active').map(e => (
@@ -91,7 +92,7 @@ export default function QuoteStep({ event, onRefresh }) {
         {/* Line Items */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="label-text mb-0">Line Items</label>
+            <FormLabel hint="Break down the quote into items (e.g. VR session, setup fee, extra hour). Optional if you set a total price below.">Line Items</FormLabel>
             <button type="button" onClick={addLine} className="btn-pg-outline text-xs flex items-center gap-1">
               <HiOutlinePlus className="w-3 h-3" /> Add Item
             </button>
@@ -110,11 +111,11 @@ export default function QuoteStep({ event, onRefresh }) {
         {/* Price summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-pg-border">
           <div>
-            <label className="label-text">Total Price (€)</label>
+            <FormLabel hint="The total amount to charge the client. Auto-calculated from line items if left empty.">Total Price (€)</FormLabel>
             <input type="number" className="input-dark" value={price} onChange={e => setPrice(e.target.value)} step="0.01" placeholder={lineTotal > 0 ? `Auto: ${lineTotal}` : '0.00'} />
           </div>
           <div>
-            <label className="label-text">Discount (€)</label>
+            <FormLabel hint="Fixed discount amount subtracted from the total price.">Discount (€)</FormLabel>
             <input type="number" className="input-dark" value={discount} onChange={e => setDiscount(e.target.value)} step="0.01" />
           </div>
           <div className="flex items-end">
@@ -126,7 +127,7 @@ export default function QuoteStep({ event, onRefresh }) {
         </div>
 
         <div>
-          <label className="label-text">Notes</label>
+          <FormLabel hint="Internal notes — not visible to the client.">Notes</FormLabel>
           <textarea className="input-dark" rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes about this event..." />
         </div>
 
