@@ -28,14 +28,6 @@ router.get('/event/:eventId', authenticate, async (req, res) => {
           sortOrder: i
         }));
 
-        // Add standard items every event needs
-        packingData.push(
-          { eventId, itemName: 'Extension cords & power strips', itemType: 'General', quantity: 1, sortOrder: packingData.length },
-          { eventId, itemName: 'Cable ties & velcro straps', itemType: 'General', quantity: 1, sortOrder: packingData.length + 1 },
-          { eventId, itemName: 'Cleaning wipes (headset lenses)', itemType: 'General', quantity: 1, sortOrder: packingData.length + 2 },
-          { eventId, itemName: 'Spare batteries', itemType: 'General', quantity: 1, sortOrder: packingData.length + 3 }
-        );
-
         await prisma.eventPackingItem.createMany({ data: packingData });
         items = await prisma.eventPackingItem.findMany({ where: { eventId }, orderBy: { sortOrder: 'asc' } });
       }
