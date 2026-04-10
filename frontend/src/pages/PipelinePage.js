@@ -30,7 +30,8 @@ export default function PipelinePage() {
 
   const createEvent = async () => {
     try {
-      const res = await api.post('/events', { status: 'quote' });
+      // Create minimal event — clientId/experienceId set in QuoteStep
+      const res = await api.post('/events', {});
       navigate(`/events/${res.data.id}`);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create event');

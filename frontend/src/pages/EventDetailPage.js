@@ -20,6 +20,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [viewStage, setViewStage] = useState(null);
   const [advancing, setAdvancing] = useState(false);
+  const [missingItems, setMissingItems] = useState([]);
 
   const fetchEvent = () => {
     api.get(`/events/${id}`).then(r => {
@@ -42,14 +43,14 @@ export default function EventDetailPage() {
 
   const handleAdvance = async () => {
     setAdvancing(true);
+    setMissingItems([]);
     try {
       const res = await api.put(`/events/${event.id}/advance`);
       if (res.data.canAdvance) {
         toast.success(`Advanced to ${res.data.event.status}`);
         fetchEvent();
       } else {
-        const missingList = res.data.missing.join(', ');
-        toast.error(`Missing: ${missingList}`, { duration: 5000 });
+        setMissingItems(res.data.missing || []);
       }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to advance');
@@ -124,6 +125,21 @@ export default function EventDetailPage() {
 
       {/* Step Content */}
       {currentStage !== 'cancelled' && renderStep()}
+
+      {/* Missing items warning */}
+      {missingItems.length > 0 && (
+        <div className="glass-card rounded-xl p-4 border border-pg-yellow/30 bg-pg-yellow/5">
+          <p className="font-bold text-sm text-pg-yellow mb-2">Complete these before advancing:</p>
+          <ul className="space-y-1">
+            {missingItems.map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-pg-yellow flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Advance Button */}
       {isViewingCurrent && canAdvance && (
